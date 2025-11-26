@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Meu Treino</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" sizes="180x180" href="icon.png">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    /* ... mantém todo o estilo anterior ... */
+  </style>
+</head>
+<body>
+  <canvas id="confetti"></canvas>
+  <div id="user-modal" ...></div> <!-- Modal do nome de usuário igual anterior -->
+  <header>
+    <div class="header-top">
+      <img src="icon.png" style="width:42px;height:42px;margin-right:18px;border-radius:10px;"> <!-- Logo ao lado do título -->
+      <div class="header-left">...</div>
+      <button class="settings-button" onclick="toggleSettings()">⚙️</button>
+    </div>
+    ...
+  </header>
+  ... <!-- resto igual ao modelo anterior -->
+  <section class="grafico-metricas">
+    <h2>Seu Progresso da Semana</h2>
+    <canvas id="chart-semana" style="max-width:360px;"></canvas>
+    <div id="info-metricas"></div>
+  </section>
+  ...
+  <script>
+    // Tudo da lógica anterior, mais:
+    // Função intermediária que verifica a semana atual
+    function getWeekNumber(date = new Date()) {
+      const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+      const dayNum = d.getUTCDay() || 7;
+      d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+      const yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
+      return Math.ceil((((d - yearStart) / 86400000) + 1)/7)
+    }
+    // Store last reset
+    function weeklyResetIfNeeded() {
+      const weekNow = getWeekNumber();
+      if(appState.lastWeekReset!==weekNow){
+        appState.completed = {};
+        appState.lastWeekReset = weekNow;
+        saveState();
+      }
+    }
+    // Renderiza gráfico semanal de conclusão e PR
+def renderSemanaChart() {
+  // Contar exercícios concluídos cada dia
+  const dias = ['Segunda', 'Terça', 'Quarta', 'Quinta'];
+  const checks = dias.map(d => (workoutData[d] ? workoutData[d].exercises.filter(e => appState.completed[e.id]).length : 0));
+  const totals = dias.map(d => (workoutData[d] ? workoutData[d].exercises.length : 0));
+  const pcts = checks.map((done, i) => totals[i] ? Math.round((done / totals[i]) * 100) : 0);
+  const prs = dias.map(d => {
+    // PR do dia = maior peso de qualquer exercício do dia
+    return Math.max(...workoutData[d].exercises.map(e => Number(appState.weights[e.id]||0)));
+  });
+  const ctx = document.getElementById('chart-semana').getContext('2d');
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: dias,
+      datasets: [
+        {label: 'Concluído', data: checks, backgroundColor:'#2563EB'},
+        {label: 'PR do Dia', data: prs, backgroundColor:'#10B981'}
+      ]
+    },
+    options: {scales:{y:{beginAtZero:true}}}
+  });
+  // Mostrar métricas adicionais
+  document.getElementById('info-metricas').innerHTML =
+    `<p>Porcentagem de cada dia: ${pcts.map((p,i)=>dias[i]+': '+p+'%').join(' | ')}</p>`;
+}
+// Chama weeklyResetIfNeeded ao carregar todos os dados e toda segunda-feira
+window.onload = function(){
+  weeklyResetIfNeeded();
+  // resto igual...
+  renderSemanaChart();
+}
+  </script>
+</body>
+</html>
