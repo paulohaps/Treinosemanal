@@ -10,9 +10,9 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   
-  <!-- O ícone será injetado via JavaScript para garantir que funcione sem arquivos externos -->
-  <link rel="icon" id="favicon-link">
-  <link rel="apple-touch-icon" id="apple-icon-link">
+  <!-- Ícone principal (deve estar na mesma pasta do index.html, como no seu GitHub) -->
+  <link rel="icon" type="image/png" href="icon.png">
+  <link rel="apple-touch-icon" href="icon.png">
 
   <!-- Carrega o Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -26,7 +26,8 @@
     body {
       font-family: 'Inter', sans-serif;
       transition: background-color 0.3s, color 0.3s;
-      -webkit-tap-highlight-color: transparent; /* Remove highlight de toque no mobile */
+      -webkit-tap-highlight-color: transparent;
+      overscroll-behavior-y: none; /* Previne o efeito elástico no iOS */
     }
     
     /* Temas */
@@ -51,6 +52,11 @@
       backdrop-filter: blur(2px);
     }
 
+    /* Fallback do Logo (Caso a imagem quebre) */
+    .fallback-logo {
+      display: none;
+    }
+
     /* Animação do Check */
     @keyframes pop {
       0% { transform: scale(1); }
@@ -63,12 +69,21 @@
 <body data-theme="light" class="pb-safe">
   
   <!-- Cabeçalho -->
-  <header class="bg-white dark:bg-slate-900 p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between sticky top-0 z-20 shadow-sm">
+  <header class="bg-white dark:bg-slate-900 p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between sticky top-0 z-20 shadow-sm h-18">
     <div class="flex items-center gap-3">
-      <!-- Logo gerado via CSS/SVG (Nunca falha) -->
-      <div id="app-logo" class="w-10 h-10 rounded-xl shadow-md bg-blue-600 flex items-center justify-center text-white font-bold text-xl select-none">
-        T
+      <!-- LOGO: Tenta carregar icon.png, se falhar mostra o Fallback -->
+      <div class="relative w-10 h-10">
+        <img src="icon.png" 
+             alt="Logo" 
+             class="w-full h-full rounded-xl shadow-md object-cover" 
+             onerror="this.style.display='none'; document.getElementById('fallback-logo').style.display='flex'">
+        
+        <!-- Fallback em CSS puro (O "T" azul) caso a imagem não carregue -->
+        <div id="fallback-logo" class="fallback-logo w-full h-full absolute top-0 left-0 rounded-xl shadow-md bg-blue-600 items-center justify-center text-white font-bold text-xl select-none">
+          T
+        </div>
       </div>
+
       <div>
         <h1 id="header-title" class="text-lg font-extrabold text-blue-600 dark:text-blue-400 m-0 leading-tight">Treino de Hoje</h1>
         <div class="text-xs text-slate-500 dark:text-slate-400">Olá, <span id="show-user-name" class="font-semibold">Atleta</span></div>
@@ -99,7 +114,7 @@
   </div>
 
   <!-- Navegação (Tabs) -->
-  <div class="sticky top-[73px] z-10 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border-b border-slate-200 dark:border-slate-800 py-2">
+  <div class="sticky top-[72px] z-10 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border-b border-slate-200 dark:border-slate-800 py-2">
     <div class="flex overflow-x-auto px-4 gap-2 no-scrollbar pb-1">
       <button class="tab-btn whitespace-nowrap px-4 py-2 rounded-full text-sm font-semibold bg-transparent text-slate-600" onclick="renderDay('Segunda')">Segunda</button>
       <button class="tab-btn whitespace-nowrap px-4 py-2 rounded-full text-sm font-semibold bg-transparent text-slate-600" onclick="renderDay('Terça')">Terça</button>
@@ -113,12 +128,13 @@
   <div class="max-w-xl mx-auto px-4 py-6 mb-20" id="app-content"></div>
 
   <!-- Gráfico -->
-  <div class="max-w-xl mx-auto px-4 mb-10">
+  <div class="max-w-xl mx-auto px-4 mb-10 pb-10">
     <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-sm border border-slate-200 dark:border-slate-700">
       <h2 class="text-base font-bold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
         <span class="text-blue-500">📊</span> Desempenho Semanal
       </h2>
-      <div class="relative h-48 w-full">
+      <!-- Aumentei a altura para h-64 (256px) para evitar bugs visuais no mobile -->
+      <div class="relative h-64 w-full">
         <canvas id="chart-semana"></canvas>
       </div>
       <div id="info-metricas" class="text-xs text-slate-500 mt-4 text-center"></div>
@@ -150,20 +166,6 @@
   </div>
 
   <script>
-    // --- LÓGICA DO LOGO AUTOMÁTICO (CORREÇÃO DEFINITIVA) ---
-    // Cria um SVG dinâmico para usar como Favicon e Apple Touch Icon
-    // Isso garante que o ícone na tela inicial do iOS seja um "T" azul bonito e não um "F" ou screenshot
-    const logoSVG = `
-      <svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
-        <rect width="512" height="512" rx="120" fill="#2563eb"/>
-        <path d="M130 150h252v60h-96v200h-60v-200h-96z" fill="white"/>
-      </svg>
-    `;
-    const blob = new Blob([logoSVG], { type: 'image/svg+xml' });
-    const url = URL.createObjectURL(blob);
-    document.getElementById('favicon-link').href = url;
-    document.getElementById('apple-icon-link').href = url;
-    
     // --- Configurações Tailwind ---
     tailwind.config = {
       darkMode: 'class',
@@ -425,22 +427,25 @@
             data: checks,
             backgroundColor: colorBar,
             borderRadius: 6,
-            barThickness: 20
+            barThickness: 24, // Barras mais largas para toque
+            maxBarThickness: 40
           }]
         },
         options: {
           responsive: true,
-          maintainAspectRatio: false,
+          maintainAspectRatio: false, // Importante para o mobile
+          animation: { duration: 500 },
+          layout: { padding: { top: 10, bottom: 0 } }, // Evita cortes
           plugins: { legend: { display: false } },
           scales: {
             y: { 
               beginAtZero: true, 
               grid: { color: isDark ? '#334155' : '#e2e8f0', drawBorder: false },
-              ticks: { color: colorText, font: {family: 'Inter', size: 10} }
+              ticks: { color: colorText, font: {family: 'Inter', size: 11}, stepSize: 1 }
             },
             x: { 
               grid: { display: false },
-              ticks: { color: colorText, font: {family: 'Inter', size: 11, weight: '600'} }
+              ticks: { color: colorText, font: {family: 'Inter', size: 12, weight: '600'} }
             }
           }
         }
