@@ -2,519 +2,93 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>FitTrack Ultra</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Meu Treino</title>
+  <!-- Carrega o Tailwind CSS para um design responsivo e moderno -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Carrega Chart.js para o gráfico de progresso -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" sizes="180x180" href="icon.png">
+
   <style>
-    :root {
-      --primary: #2563EB;
-      --primary-dark: #1E40AF;
-      --bg: #F8FAFC;
-      --surface: #FFFFFF;
-      --text-main: #1E293B;
-      --text-muted: #64748B;
-      --border: #E2E8F0;
-      --success: #10B981;
-      --radius: 16px;
-      --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
-      --input-bg: #F1F5F9;
-    }
-
-    [data-theme="dark"] {
-      --primary: #3B82F6;
-      --primary-dark: #60A5FA;
-      --bg: #0F172A;
-      --surface: #1E293B;
-      --text-main: #F8FAFC;
-      --text-muted: #94A3B8;
-      --border: #334155;
-      --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
-      --input-bg: #0F172A;
-    }
-
-    * {
-      box-sizing: border-box;
-      -webkit-tap-highlight-color: transparent;
-      transition: background-color 0.3s, border-color 0.3s, color 0.3s;
-    }
-
+    /* Configurações básicas e tema escuro */
     body {
-      margin: 0;
       font-family: 'Inter', sans-serif;
-      background: var(--bg);
-      color: var(--text-main);
-      padding-bottom: 100px;
+      transition: background-color 0.3s, color 0.3s;
     }
-
-    header {
-      background: var(--surface);
-      padding: 1.5rem 1.5rem 1rem;
-      border-radius: 0 0 24px 24px;
-      box-shadow: var(--shadow);
-      position: sticky;
-      top: 0;
-      z-index: 10;
+    body[data-theme="light"] {
+      background: #f8fafc; /* slate-50 */
+      color: #1e293b; /* slate-800 */
     }
-
-    .header-top {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 1rem;
-      gap: 0.75rem;
+    body[data-theme="dark"] {
+      background: #1e293b; /* slate-800 */
+      color: #f8fafc; /* slate-50 */
     }
-
-    .header-left {
-      display: flex;
-      flex-direction: column;
-      gap: 0.25rem;
-      min-width: 0;
+    .card, header, #settings-panel, .m-content {
+      transition: background-color 0.3s, border-color 0.3s, box-shadow 0.3s;
     }
-
-    h1 {
-      margin: 0;
-      font-size: 1.4rem;
-      font-weight: 800;
-      color: var(--primary);
+    body[data-theme="dark"] .card, 
+    body[data-theme="dark"] header,
+    body[data-theme="dark"] #settings-panel,
+    body[data-theme="dark"] .grafico-metricas,
+    body[data-theme="dark"] #user-modal .m-content {
+      background: #334155; /* slate-700 */
+      border-color: #475569; /* slate-600 */
+      color: #f8fafc;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
     }
+    body[data-theme="dark"] .tab-btn { color: #cbd5e1; /* slate-300 */ }
+    body[data-theme="dark"] .tab-btn.active { background: #60a5fa; color: #1e293b; } /* blue-400 */
+    body[data-theme="dark"] .tag,
+    body[data-theme="dark"] .settings-btn { background: #475569; /* slate-600 */ color: #f8fafc; }
+    body[data-theme="dark"] input.input-weight { background: #475569; border-color: #64748b; color: #f8fafc; }
+    body[data-theme="dark"] .check-btn { background: #475569; border-color: #94a3b8; color: #e2e8f0; }
+    body[data-theme="dark"] .check-btn.checked { background: #10b981; border-color: #10b981; color: #fff; }
 
-    .header-subrow {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      flex-wrap: wrap;
-    }
-
-    .settings-button {
-      background: var(--input-bg);
-      border: none;
-      border-radius: 50%;
-      width: 40px;
-      height: 40px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.2rem;
-    }
-
-    .user-select-wrapper {
-      display: flex;
-      flex-direction: column;
-      gap: 0.3rem;
-      font-size: 0.75rem;
-      color: var(--text-muted);
-      min-width: 140px;
-    }
-
-    .user-select {
-      padding: 6px 8px;
-      border-radius: 10px;
-      border: 1px solid var(--border);
-      background: var(--input-bg);
-      font-size: 0.8rem;
-      color: var(--text-main);
-      outline: none;
-      width: 100%;
-    }
-
-    .settings-panel {
+    /* Estilo para o modal customizado de confirmação */
+    #confirmation-modal {
       position: fixed;
-      right: 1rem;
-      top: 4.5rem;
-      background: var(--surface);
-      border-radius: 16px;
-      box-shadow: var(--shadow);
-      border: 1px solid var(--border);
-      padding: 1rem;
-      width: 260px;
-      max-width: calc(100% - 2rem);
-      z-index: 20;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 1000;
       display: none;
-    }
-
-    .settings-panel.open {
-      display: block;
-    }
-
-    .settings-title {
-      font-size: 0.9rem;
-      font-weight: 600;
-      margin-bottom: 0.75rem;
-    }
-
-    .settings-section {
-      margin-bottom: 0.75rem;
-    }
-
-    .settings-section label {
-      display: block;
-      font-size: 0.8rem;
-      margin-bottom: 0.25rem;
-      color: var(--text-muted);
-    }
-
-    .user-add-row {
-      display: flex;
-      gap: 0.4rem;
-    }
-
-    .user-add-input {
-      flex: 1;
-      padding: 6px 8px;
-      border-radius: 10px;
-      border: 1px solid var(--border);
-      background: var(--input-bg);
-      font-size: 0.8rem;
-      color: var(--text-main);
-      outline: none;
-    }
-
-    .user-add-btn {
-      padding: 0 10px;
-      border-radius: 10px;
-      border: none;
-      background: var(--primary);
-      color: #fff;
-      font-size: 0.9rem;
-      cursor: pointer;
-      white-space: nowrap;
-      display: flex;
       align-items: center;
       justify-content: center;
-    }
-
-    .theme-toggle-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 0.5rem;
-      font-size: 0.8rem;
-    }
-
-    .theme-toggle-btn {
-      padding: 6px 10px;
-      border-radius: 999px;
-      border: 1px solid var(--border);
-      background: var(--input-bg);
-      cursor: pointer;
-      font-size: 0.8rem;
-      display: flex;
-      align-items: center;
-      gap: 0.25rem;
-    }
-
-    .progress-wrapper {
-      position: relative;
-      height: 6px;
-      background: var(--input-bg);
-      border-radius: 10px;
-      margin-top: 10px;
-      overflow: hidden;
-    }
-
-    .progress-fill {
-      height: 100%;
-      background: var(--primary);
-      width: 0%;
-      transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-      border-radius: 10px;
-    }
-
-    .progress-label {
-      font-size: 0.8rem;
-      color: var(--text-muted);
-      display: flex;
-      justify-content: space-between;
-      margin-top: 5px;
-    }
-
-    .tabs-scroll {
-      overflow-x: auto;
-      white-space: nowrap;
-      padding: 1rem;
-      margin-bottom: 0.5rem;
-      -ms-overflow-style: none;
-      scrollbar-width: none;
-    }
-
-    .tabs-scroll::-webkit-scrollbar {
-      display: none;
-    }
-
-    .tab-btn {
-      background: transparent;
-      border: 1px solid var(--border);
-      color: var(--text-muted);
-      padding: 8px 16px;
-      border-radius: 20px;
-      font-weight: 600;
-      margin-right: 8px;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-
-    .tab-btn.active {
-      background: var(--primary);
-      color: #fff;
-      border-color: var(--primary);
-      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
-    }
-
-    .container {
-      padding: 0 1rem;
-      max-width: 600px;
-      margin: 0 auto;
-    }
-
-    .card {
-      background: var(--surface);
-      border-radius: var(--radius);
-      padding: 1.2rem;
-      margin-bottom: 1rem;
-      box-shadow: var(--shadow);
-      display: grid;
-      grid-template-columns: 1fr auto;
-      gap: 1rem;
-      align-items: center;
-      border: 1px solid var(--border);
-      position: relative;
-      overflow: hidden;
-    }
-
-    .card.done {
-      border-color: var(--success);
-    }
-
-    .card.done::before {
-      content: "";
-      position: absolute;
-      left: 0;
-      top: 0;
-      bottom: 0;
-      width: 4px;
-      background: var(--success);
-    }
-
-    .card-content h3 {
-      margin: 0 0 5px 0;
-      font-size: 1.1rem;
-    }
-
-    .card-meta {
-      font-size: 0.85rem;
-      color: var(--text-muted);
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      align-items: center;
-    }
-
-    .tag {
-      background: var(--input-bg);
-      padding: 2px 8px;
-      border-radius: 4px;
-      font-weight: 600;
-      font-size: 0.75rem;
-    }
-
-    .input-weight-wrapper {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      background: var(--input-bg);
-      padding: 4px 8px;
-      border-radius: 8px;
-      margin-top: 8px;
-      width: fit-content;
-    }
-
-    .input-weight {
-      background: transparent;
-      border: none;
-      width: 40px;
-      color: var(--text-main);
-      font-weight: bold;
-      text-align: center;
-      font-size: 0.9rem;
-      outline: none;
-    }
-
-    .input-label {
-      font-size: 0.75rem;
-      color: var(--text-muted);
-    }
-
-    .card-actions {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      align-items: center;
-    }
-
-    .check-btn {
-      width: 36px;
-      height: 36px;
-      border-radius: 50%;
-      border: 2px solid var(--border);
-      background: transparent;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.2rem;
-      color: transparent;
-      transition: all 0.2s;
-    }
-
-    .check-btn.checked {
-      background: var(--success);
-      border-color: var(--success);
-      color: white;
-      animation: pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    }
-
-    .timer-trigger {
-      font-size: 1.2rem;
-      background: none;
-      border: none;
-      cursor: pointer;
-      opacity: 0.7;
-      transition: opacity 0.2s;
-    }
-
-    .timer-trigger:hover {
-      opacity: 1;
-      transform: scale(1.1);
-    }
-
-    .timer-modal {
-      position: fixed;
-      bottom: -100%;
-      left: 0;
-      right: 0;
-      background: var(--surface);
-      padding: 2rem;
-      border-radius: 30px 30px 0 0;
-      box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.2);
-      z-index: 100;
-      text-align: center;
-      transition: bottom 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    }
-
-    .timer-modal.open {
-      bottom: 0;
-    }
-
-    .timer-circle {
-      width: 120px;
-      height: 120px;
-      border-radius: 50%;
-      border: 4px solid var(--primary);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 2.5rem;
-      font-weight: 800;
-      margin: 0 auto 1.5rem;
-      color: var(--text-main);
-    }
-
-    .btn {
-      padding: 12px 24px;
-      border-radius: 12px;
-      border: none;
-      font-weight: 600;
-      font-size: 1rem;
-      cursor: pointer;
-      width: 100%;
-    }
-
-    .btn-primary {
-      background: var(--primary);
-      color: white;
-      margin-bottom: 10px;
-    }
-
-    .btn-outline {
-      background: transparent;
-      border: 1px solid var(--border);
-      color: var(--text-muted);
-    }
-
-    @keyframes pop {
-      0% { transform: scale(0.8); }
-      50% { transform: scale(1.2); }
-      100% { transform: scale(1); }
-    }
-
-    @keyframes slideIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    #confetti {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      pointer-events: none;
-      z-index: 999;
     }
   </style>
 </head>
-<body>
-  <canvas id="confetti"></canvas>
-
-  <header>
-    <div class="header-top">
-      <div class="header-left">
-        <div>
-          <h1 id="header-title">Treino de Hoje</h1>
-          <small style="color: var(--text-muted)" id="header-subtitle">Foco Total</small>
-        </div>
-        <div class="header-subrow">
-          <div class="user-select-wrapper">
-            <span>Usuário atual</span>
-            <select id="user-select" class="user-select" onchange="changeUser(this.value)"></select>
-          </div>
-        </div>
+<body data-theme="light">
+  <!-- Cabeçalho -->
+  <header class="bg-white p-4 border-b border-slate-200 flex items-center justify-between sticky top-0 z-10 shadow-sm">
+    <div class="flex items-center">
+      <!-- Imagem de placeholder para o ícone, já que "icon.png" não está disponível no ambiente -->
+      <img src="https://placehold.co/40x40/2563eb/ffffff?text=F" class="w-10 h-10 rounded-lg mr-4 shadow-md" alt="Logo">
+      <div>
+        <h1 id="header-title" class="text-xl font-extrabold text-blue-600 m-0">Treino de Hoje</h1>
+        <div class="text-sm text-slate-500 mt-0.5">Usuário: <span id="show-user-name" class="font-medium"></span></div>
       </div>
-      <button class="settings-button" onclick="toggleSettings()">⚙️</button>
     </div>
-
-    <div class="progress-label">
-      <span>Concluído</span>
-      <span id="progress-text">0%</span>
-    </div>
-    <div class="progress-wrapper">
-      <div class="progress-fill" id="progress-bar"></div>
-    </div>
+    <button class="settings-btn bg-slate-100 border-none rounded-full w-9 h-9 cursor-pointer text-xl text-slate-600 flex items-center justify-center shadow-sm" onclick="toggleSettings()">⚙️</button>
   </header>
 
-  <div id="settings-panel" class="settings-panel">
-    <div class="settings-title">Configurações</div>
-    <div class="settings-section">
-      <label>Tema</label>
-      <div class="theme-toggle-row">
-        <span id="theme-label">Claro</span>
-        <button class="theme-toggle-btn" onclick="toggleTheme()">
-          <span id="theme-icon">🌙</span>
-          <span>Alternar tema</span>
-        </button>
-      </div>
-    </div>
-    <div class="settings-section">
-      <label>Novo usuário</label>
-      <div class="user-add-row">
-        <input id="new-user-input" class="user-add-input" type="text" placeholder="Nome do usuário">
-        <button class="user-add-btn" onclick="handleAddUser()">+</button>
-      </div>
-    </div>
+  <!-- Painel de Configurações -->
+  <div id="settings-panel" class="absolute top-16 right-4 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl shadow-xl p-4 w-64 hidden z-20">
+    <h3 class="mt-0 text-lg font-semibold text-blue-600 dark:text-blue-400">Configurações</h3>
+    <hr class="my-3 border-slate-200 dark:border-slate-600">
+    <label class="text-sm font-medium text-slate-600 dark:text-slate-300">Nome de usuário:</label>
+    <input id="edit-user-name" type="text" class="w-full p-2 mt-1 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-blue-500 focus:border-blue-500 mb-3 text-slate-800 dark:bg-slate-800 dark:text-white" placeholder="Seu nome">
+    <button onclick="saveUserNameSettings()" class="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-md transition duration-150">Salvar nome</button>
+    <hr class="my-3 border-slate-200 dark:border-slate-600">
+    <label class="text-sm font-medium text-slate-600 dark:text-slate-300">Tema:</label>
+    <button onclick="toggleTheme()" class="flex items-center justify-between px-4 py-2 mt-2 rounded-full bg-slate-100 dark:bg-slate-600 hover:bg-slate-200 dark:hover:bg-slate-500 border-none w-full text-slate-800 dark:text-white font-medium">
+      <span id="theme-label">Claro</span>
+      <span id="theme-icon">🌙</span>
+    </button>
   </div>
 
-  <div class="tabs-scroll">
+  <!-- Tabs (Navegação dos Dias) -->
+  <div class="flex justify-center bg-slate-100 dark:bg-slate-800 py-3 border-b border-slate-200 dark:border-slate-800 shadow-inner overflow-x-auto whitespace-nowrap">
     <button class="tab-btn" onclick="renderDay('Segunda')">Segunda</button>
     <button class="tab-btn" onclick="renderDay('Terça')">Terça</button>
     <button class="tab-btn" onclick="renderDay('Quarta')">Quarta</button>
@@ -522,15 +96,56 @@
     <button class="tab-btn" onclick="renderDay('Resumo')">Resumo</button>
   </div>
 
-  <div class="container" id="app-content"></div>
-
-  <div class="timer-modal" id="timer-modal">
-    <div class="timer-circle" id="timer-display">01:00</div>
-    <button class="btn btn-primary" onclick="addTime(10)">+10 Segundos</button>
-    <button class="btn btn-outline" onclick="closeTimer()">Fechar / Parar</button>
+  <!-- Conteúdo Principal do Treino -->
+  <div class="max-w-xl mx-auto px-4 mt-6" id="app-content">
+    <!-- Exercícios serão renderizados aqui -->
   </div>
 
+  <!-- Progresso e Gráfico de Métricas -->
+  <div class="grafico-metricas max-w-xl mx-auto mt-6 mb-8 bg-white dark:bg-slate-700 rounded-xl p-4 shadow-lg border border-slate-200 dark:border-slate-600">
+    <h2 class="text-lg font-bold text-blue-600 dark:text-blue-400 mb-4">Seu Progresso da Semana</h2>
+    <canvas id="chart-semana" class="max-w-full h-52"></canvas>
+    <div id="info-metricas" class="text-sm text-slate-600 mt-4 dark:text-slate-300"></div>
+  </div>
+
+  <!-- Modal de Boas-vindas/Nome do Usuário -->
+  <div id="user-modal" class="hidden fixed inset-0 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm z-[9999] items-center justify-center">
+    <div class="m-content bg-white dark:bg-slate-700 p-6 rounded-2xl shadow-2xl text-center border border-slate-200 dark:border-slate-600 w-11/12 max-w-sm">
+      <h2 class="text-2xl font-bold text-blue-600 dark:text-blue-400 mb-3">Bem-vindo! 💪</h2>
+      <p class="text-slate-600 dark:text-slate-300 mb-4">Digite seu nome para começar a registrar seu treino:</p>
+      <input id="input-user-name" type="text" class="w-full p-3 border border-slate-300 dark:border-slate-600 rounded-lg text-lg mb-4 text-slate-800 dark:bg-slate-800 dark:text-white" placeholder="Seu nome">
+      <button onclick="saveUserNameModal()" class="w-full py-3 border-none rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-lg shadow-lg shadow-blue-500/50 transition duration-150">Salvar</button>
+    </div>
+  </div>
+
+  <!-- Modal de Confirmação Customizado (Substitui confirm()) -->
+  <div id="confirmation-modal">
+    <div class="bg-white dark:bg-slate-700 p-6 rounded-xl shadow-2xl text-center border border-slate-200 dark:border-slate-600 w-11/12 max-w-xs">
+      <h3 class="text-xl font-bold mb-3 text-red-600 dark:text-red-400">Reiniciar Semana?</h3>
+      <p class="text-slate-700 dark:text-slate-200 mb-6">Tem certeza? Isso apagará todos os exercícios concluídos desta semana.</p>
+      <div class="flex justify-between gap-3">
+        <button id="confirm-cancel" class="flex-1 py-2 rounded-lg bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-200 font-semibold hover:bg-slate-300 dark:hover:bg-slate-500 transition duration-150">Cancelar</button>
+        <button id="confirm-ok" class="flex-1 py-2 rounded-lg bg-red-600 text-white font-semibold hover:bg-red-700 transition duration-150">Confirmar</button>
+      </div>
+    </div>
+  </div>
+
+
   <script>
+    // Configuração do Tailwind (para cores no JS)
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            'blue-main': '#2563eb', // blue-600
+            'green-done': '#10b981', // emerald-500
+            'slate-light': '#f1f5f9', // slate-100
+          }
+        }
+      }
+    }
+
     const workoutData = {
       Segunda: { focus: "Peito e Tríceps", exercises: [
         { id: "s1", name: "Supino Inclinado", sets: 4, reps: "8-12" },
@@ -562,430 +177,253 @@
       ]}
     };
 
-    const DB_KEY = "fit_track_v5_autoday";
+    const DB_KEY = "meutreino_state";
     let appState = JSON.parse(localStorage.getItem(DB_KEY)) || null;
 
+    // Inicialização do estado se não existir
     if (!appState) {
-      appState = {
-        theme: "light",
-        currentUser: "Paulo",
-        users: {
-          Paulo: { completed: {}, weights: {} },
-          Gelvan: { completed: {}, weights: {} }
+      appState = { theme: "light", userName: "", completed: {}, weights: {}, lastWeekReset: 0 };
+      localStorage.setItem(DB_KEY, JSON.stringify(appState));
+    }
+
+    let currentDay = getAutoDay();
+
+    function getWeekNumber(date = new Date()){
+      const d=new Date(Date.UTC(date.getFullYear(),date.getMonth(),date.getDate()));
+      const dayNum = d.getUTCDay()||7;
+      d.setUTCDate(d.getUTCDate()+4-dayNum);
+      const yearStart=new Date(Date.UTC(d.getUTCFullYear(),0,1));
+      return Math.ceil((((d-yearStart)/86400000)+1)/7);
+    }
+
+    function weeklyResetIfNeeded(){
+      const weekNow=getWeekNumber();
+      if(appState.lastWeekReset!=weekNow){
+        appState.completed={};
+        appState.lastWeekReset=weekNow;
+        saveState();
+      }
+    }
+
+    function saveState(){localStorage.setItem(DB_KEY,JSON.stringify(appState));}
+
+    function openUserModal(){document.getElementById("user-modal").classList.remove("hidden");document.getElementById("user-modal").classList.add("flex");}
+    
+    function saveUserNameModal(){
+      const name=document.getElementById("input-user-name").value.trim();
+      if(name.length>0){appState.userName=name;saveState();document.getElementById("user-modal").classList.remove("flex");document.getElementById("user-modal").classList.add("hidden");renderAll();}
+    }
+
+    function saveUserNameSettings(){
+      const name=document.getElementById("edit-user-name").value.trim();
+      if(name.length>0){appState.userName=name;saveState();renderAll();}
+    }
+
+    function renderUserName(){
+      document.getElementById("show-user-name").innerText=appState.userName||"";
+      document.getElementById("edit-user-name").value=appState.userName||"";
+    }
+
+    function toggleSettings(){document.getElementById("settings-panel").classList.toggle("hidden");}
+
+    function toggleTheme(){
+      appState.theme=appState.theme==="light"?"dark":"light";
+      document.body.setAttribute("data-theme",appState.theme);
+      document.getElementById("theme-label").innerText=appState.theme==="light"?"Claro":"Escuro";
+      document.getElementById("theme-icon").innerText=appState.theme==="light"?"🌙":"☀️";
+      saveState();
+      renderSemanaChart(); // Chart colors might change
+    }
+
+    function getAutoDay(){
+      const d=new Date().getDay();
+      if(d==1)return"Segunda";
+      if(d==2)return"Terça";
+      if(d==3)return"Quarta";
+      if(d==4)return"Quinta";
+      return"Segunda";
+    }
+
+    function renderAll(){
+      // Aplica o tema
+      document.body.setAttribute("data-theme",appState.theme||"light");
+      document.getElementById("theme-label").innerText=appState.theme==="light"?"Claro":"Escuro";
+      document.getElementById("theme-icon").innerText=appState.theme==="light"?"🌙":"☀️";
+
+      renderUserName();
+      renderDay(currentDay);
+      renderSemanaChart();
+    }
+
+    function renderDay(day){
+      currentDay=day;
+      document.querySelectorAll('.tab-btn').forEach(btn=>{
+        btn.classList.remove('active', 'bg-blue-600', 'text-white', 'shadow-md', 'shadow-blue-600/30', 'dark:bg-blue-400', 'dark:text-slate-800');
+        btn.classList.add('bg-transparent', 'text-slate-600', 'dark:text-slate-300', 'px-4', 'py-2', 'mx-0.5', 'text-base', 'rounded-full', 'cursor-pointer', 'font-semibold');
+        
+        if(btn.innerText===day){
+          btn.classList.add('active', 'bg-blue-600', 'text-white', 'shadow-md', 'shadow-blue-600/30', 'dark:bg-blue-400', 'dark:text-slate-800');
+          btn.classList.remove('bg-transparent', 'text-slate-600', 'dark:text-slate-300');
         }
-      };
-      localStorage.setItem(DB_KEY, JSON.stringify(appState));
-    }
-
-    let currentDay = "Segunda";
-    let timerInterval;
-    let timeLeft = 60;
-
-    function saveState() {
-      localStorage.setItem(DB_KEY, JSON.stringify(appState));
-    }
-
-    function getCurrentUserData() {
-      const name = appState.currentUser;
-      if (!appState.users[name]) {
-        appState.users[name] = { completed: {}, weights: {} };
-      }
-      return appState.users[name];
-    }
-
-    function toggleSettings() {
-      const panel = document.getElementById("settings-panel");
-      panel.classList.toggle("open");
-    }
-
-    function updateThemeUI() {
-      document.body.setAttribute("data-theme", appState.theme || "light");
-      const themeLabel = document.getElementById("theme-label");
-      const themeIcon = document.getElementById("theme-icon");
-      const isLight = appState.theme === "light";
-      themeLabel.textContent = isLight ? "Claro" : "Escuro";
-      themeIcon.textContent = isLight ? "🌙" : "☀️";
-    }
-
-    function toggleTheme() {
-      appState.theme = appState.theme === "light" ? "dark" : "light";
-      updateThemeUI();
-      saveState();
-    }
-
-    function renderUserSelect() {
-      const select = document.getElementById("user-select");
-      select.innerHTML = "";
-      const names = Object.keys(appState.users);
-      names.forEach((name) => {
-        const opt = document.createElement("option");
-        opt.value = name;
-        opt.textContent = name;
-        if (name === appState.currentUser) opt.selected = true;
-        select.appendChild(opt);
       });
-    }
+      
+      const container=document.getElementById('app-content');
+      container.innerHTML='';
 
-    function changeUser(name) {
-      if (!name) return;
-      if (!appState.users[name]) {
-        appState.users[name] = { completed: {}, weights: {} };
+      if(day==='Resumo'){
+        renderResumo(container);
+        document.getElementById('header-title').innerText="Resumo Semanal";
+      }else{
+        document.getElementById('header-title').innerText=day + " - " + workoutData[day].focus;
+        renderExercises(container,workoutData[day].exercises);
       }
-      appState.currentUser = name;
-      saveState();
-      renderByCurrentMode();
     }
 
-    function handleAddUser() {
-      const input = document.getElementById("new-user-input");
-      let name = (input.value || "").trim();
-      if (!name) return;
-      if (!appState.users[name]) {
-        appState.users[name] = { completed: {}, weights: {} };
-      }
-      appState.currentUser = name;
-      input.value = "";
-      saveState();
-      renderUserSelect();
-      renderByCurrentMode();
-    }
+    function renderExercises(container,exercises){
+      exercises.forEach((ex)=>{
+        const isDone=appState.completed[ex.id];
+        const weight=appState.weights[ex.id]||'';
+        const card=document.createElement('div');
+        
+        // Classes Tailwind para o Card
+        const cardClasses = `card bg-white dark:bg-slate-700 rounded-xl shadow-lg p-4 mb-4 border border-slate-200 dark:border-slate-600 flex justify-between items-center flex-wrap ${isDone ? 'border-emerald-500 shadow-emerald-500/10' : ''}`;
 
-    function updateHeader(title, subtitle) {
-      document.getElementById("header-title").innerText = title;
-      document.getElementById("header-subtitle").innerText = subtitle;
-    }
-
-    function renderExercises(container, exercises) {
-      const userData = getCurrentUserData();
-      exercises.forEach((ex, i) => {
-        const isDone = userData.completed[ex.id];
-        const weight = userData.weights[ex.id] || "";
-
-        const card = document.createElement("div");
-        card.className = `card ${isDone ? "done" : ""}`;
-        card.style.animation = `slideIn 0.4s ease forwards ${i * 0.1}s`;
-        card.style.opacity = "0";
-
-        card.innerHTML = `
-          <div class="card-content">
-            <h3>${ex.name}</h3>
-            <div class="card-meta">
-              <span class="tag">${ex.sets} x ${ex.reps}</span>
-            </div>
-            <div class="input-weight-wrapper">
-              <span style="font-size:0.8rem">⚖️</span>
-              <input type="number" class="input-weight" placeholder="0" value="${weight}" onchange="updateWeight('${ex.id}', this.value)">
-              <span class="input-label">kg</span>
+        card.className = cardClasses;
+        
+        card.innerHTML=`
+          <div class="card-content flex-1">
+            <h3 class="text-lg font-bold mb-1">${ex.name}</h3>
+            <div><span class="tag bg-slate-100 dark:bg-slate-600 text-slate-600 dark:text-slate-50 px-2 py-0.5 rounded-md text-sm font-semibold">${ex.sets} x ${ex.reps}</span></div>
+            <div class="input-weight-wrapper flex items-center gap-1 mt-3">
+              <span class="text-xl">⚖️</span>
+              <input type="number" class="input-weight w-12 text-base text-center border border-slate-300 dark:border-slate-600 rounded-lg p-1 text-slate-800 dark:bg-slate-800 dark:text-white" placeholder="0" value="${weight}" onchange="updateWeight('${ex.id}',this.value)">
+              <span class="input-label text-slate-500 dark:text-slate-400">kg</span>
             </div>
           </div>
-          <div class="card-actions">
-            <button class="check-btn ${isDone ? "checked" : ""}" onclick="toggleCheck('${ex.id}')">✓</button>
-            <button class="timer-trigger" onclick="openTimer()">⏱</button>
-          </div>
-        `;
+          <div class="card-actions flex flex-col gap-2 ml-4">
+            <button class="check-btn w-9 h-9 rounded-full border-2 border-slate-300 dark:border-slate-500 bg-white dark:bg-slate-600 text-slate-500 dark:text-slate-300 text-xl flex items-center justify-center transition duration-150 ${isDone ? 'checked !bg-emerald-500 !text-white !border-emerald-500' : ''}" onclick="toggleCheck('${ex.id}')">✓</button>
+          </div>`;
         container.appendChild(card);
       });
     }
 
-    function renderResumo(container) {
-      let totalEx = 0;
-      let totalDone = 0;
-      const userData = getCurrentUserData();
-
-      Object.keys(workoutData).forEach((d) => {
-        workoutData[d].exercises.forEach((ex) => {
-          totalEx++;
-          if (userData.completed[ex.id]) totalDone++;
-        });
-      });
-
-      const html = `
-        <div class="card" style="text-align:center; display:block;">
-          <h2>${totalDone} / ${totalEx}</h2>
-          <p style="color:var(--text-muted)">Exercícios totais concluídos (${appState.currentUser})</p>
-          <button class="btn btn-outline" onclick="resetWeek()" style="border-color:#EF4444; color:#EF4444; margin-top:10px;">
-            Reiniciar Semana (somente ${appState.currentUser})
-          </button>
+    function renderResumo(container){
+      let total=0,done=0;Object.keys(workoutData).forEach(d=>{workoutData[d].exercises.forEach(ex=>{total++;if(appState.completed[ex.id])done++;});});
+      container.innerHTML=`
+        <div class="card bg-white dark:bg-slate-700 rounded-xl shadow-lg p-6 mb-4 border border-slate-200 dark:border-slate-600 text-center flex flex-col items-center">
+          <div class="text-5xl font-extrabold text-blue-600 dark:text-blue-400 mb-1">${done} / ${total}</div>
+          <p class="text-slate-500 dark:text-slate-400 mb-4">Exercícios totais concluídos</p>
+          <button onclick="showResetModal()" class="border-none bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-6 rounded-xl shadow-md transition duration-150 cursor-pointer">Reiniciar Semana</button>
         </div>
-        <div style="padding: 1rem; color: var(--text-muted); font-size: 0.9rem;">
-          <p>💡 <strong>Dica:</strong> Toque no ícone do relógio para iniciar o descanso.</p>
-          <p>⚖️ <strong>Cargas:</strong> O app salva o peso digitado por usuário de forma independente.</p>
-        </div>
-      `;
-      container.innerHTML = html;
+        <div class="text-slate-500 dark:text-slate-400 text-sm mt-3 px-2">
+          💡 Dica: Toque no ✓ para marcar como feito. <br>⚖️ Cargas: O app salva o peso digitado automaticamente.
+        </div>`;
     }
 
-    function renderRestDay() {
-      const content = document.getElementById("app-content");
-      content.innerHTML = "";
-
-      const restMessages = [
-        "Caminhada leve de 10–15 minutos",
-        "Alongamento de corpo inteiro por 5–10 minutos",
-        "3 séries de prancha de 20 segundos",
-        "Respiração profunda por 3 minutos",
-        "Hidratação e sono em dia hoje!"
-      ];
-
-      const randomMsg = restMessages[Math.floor(Math.random() * restMessages.length)];
-
-      const card = document.createElement("div");
-      card.className = "card";
-      card.style.display = "block";
-      card.innerHTML = `
-        <h2>Hoje é dia de descanso 😴</h2>
-        <p style="color:var(--text-muted); margin-bottom: 1rem;">Use o dia para recuperar e voltar mais forte, ${appState.currentUser}.</p>
-        <button class="btn btn-primary" onclick="renderDay('Resumo')">Ver resumo da semana</button>
-        <div style="margin-top: 1rem;">
-          <p style="color:var(--text-muted); margin-bottom: 0.5rem;">Quer um desafio leve para hoje?</p>
-          <button class="btn btn-outline" onclick="showRestChallenge()">Sortear desafio leve</button>
-          <p id="rest-challenge" style="color:var(--text-muted); margin-top: 0.75rem;"></p>
-        </div>
-      `;
-      content.appendChild(card);
-
-      const tabs = document.querySelectorAll(".tab-btn");
-      tabs.forEach(btn => btn.classList.remove("active"));
-
-      const weekDayName = getWeekdayName();
-      updateHeader("Descanso", `${weekDayName} • ${appState.currentUser}`);
-      updateProgressBar(true);
-    }
-
-    function showRestChallenge() {
-      const restMessages = [
-        "Caminhada leve de 10–15 minutos",
-        "Alongamento de corpo inteiro por 5–10 minutos",
-        "3 séries de prancha de 20 segundos",
-        "Respiração profunda por 3 minutos",
-        "Hidratação e sono em dia hoje!"
-      ];
-      const randomMsg = restMessages[Math.floor(Math.random() * restMessages.length)];
-      document.getElementById("rest-challenge").innerText = randomMsg;
-    }
-
-    function renderDay(day) {
-      currentDay = day;
-      const content = document.getElementById("app-content");
-      content.innerHTML = "";
-
-      document.querySelectorAll(".tab-btn").forEach((btn) => {
-        btn.classList.toggle("active", btn.innerText === day);
-      });
-
-      if (day === "Resumo") {
-        renderResumo(content);
-        updateHeader("Resumo Semanal", `Progresso de ${appState.currentUser}`);
-      } else {
-        const data = workoutData[day];
-        updateHeader(day, `${data.focus} • ${appState.currentUser}`);
-        renderExercises(content, data.exercises);
-      }
-
-      updateProgressBar();
-    }
-
-    function renderByCurrentMode() {
-      if (isTodayRestDay()) {
-        renderRestDay();
-      } else {
-        renderDay(currentDay);
-      }
-    }
-
-    function toggleCheck(id) {
-      const userData = getCurrentUserData();
-      if (userData.completed[id]) {
-        delete userData.completed[id];
-      } else {
-        userData.completed[id] = true;
-      }
+    function toggleCheck(id){
+      if(appState.completed[id]){delete appState.completed[id];}
+      else{appState.completed[id]=true;}
       saveState();
       renderDay(currentDay);
-
-      if (checkDayCompletion(currentDay)) {
-        triggerConfetti();
-      }
+      renderSemanaChart();
     }
 
-    function updateWeight(id, value) {
-      const userData = getCurrentUserData();
-      userData.weights[id] = value;
+    function updateWeight(id,value){
+      appState.weights[id]=value;
       saveState();
+      renderSemanaChart();
     }
 
-    function updateProgressBar(isRest) {
-      const userData = getCurrentUserData();
-      let total = 0;
-      let done = 0;
+    // Função para mostrar o modal de confirmação (substitui 'confirm()')
+    function showResetModal() {
+        const modal = document.getElementById('confirmation-modal');
+        modal.style.display = 'flex';
 
-      if (isRest) {
-        document.getElementById("progress-bar").style.width = `0%`;
-        document.getElementById("progress-text").innerText = `Descanso`;
-        return;
-      }
+        // Garante que os listeners sejam adicionados apenas uma vez ou removidos
+        const confirmOk = document.getElementById('confirm-ok');
+        const confirmCancel = document.getElementById('confirm-cancel');
 
-      if (currentDay === "Resumo") {
-        Object.keys(workoutData).forEach((d) => {
-          workoutData[d].exercises.forEach((ex) => {
-            total++;
-            if (userData.completed[ex.id]) done++;
-          });
-        });
-      } else {
-        const exercises = workoutData[currentDay].exercises;
-        total = exercises.length;
-        exercises.forEach((ex) => {
-          if (userData.completed[ex.id]) done++;
-        });
-      }
+        // Remove listeners antigos para evitar duplicação
+        confirmOk.onclick = null;
+        confirmCancel.onclick = null;
 
-      const pct = total === 0 ? 0 : Math.round((done / total) * 100);
-      document.getElementById("progress-bar").style.width = `${pct}%`;
-      document.getElementById("progress-text").innerText = `${pct}%`;
+        confirmOk.onclick = () => {
+            resetWeekAction();
+            modal.style.display = 'none';
+        };
+
+        confirmCancel.onclick = () => {
+            modal.style.display = 'none';
+        };
     }
 
-    function resetWeek() {
-      if (confirm(`Tem certeza? Isso apagará os checks da semana apenas para ${appState.currentUser}.`)) {
-        const userData = getCurrentUserData();
-        userData.completed = {};
+    function resetWeekAction(){
+        appState.completed={};
         saveState();
-        currentDay = getAutoDay();
-        if (isTodayRestDay()) {
-          renderRestDay();
-        } else {
-          renderDay(currentDay);
+        renderDay(getAutoDay());
+        renderSemanaChart();
+    }
+
+    // Chart semanal
+    function renderSemanaChart(){
+      const dias=['Segunda','Terça','Quarta','Quinta'];
+      const checks=dias.map(d=>workoutData[d]?workoutData[d].exercises.filter(e=>appState.completed[e.id]).length:0);
+      const totals=dias.map(d=>workoutData[d]?workoutData[d].exercises.length:0);
+      const pcts=checks.map((done,i)=>totals[i]?Math.round((done/totals[i])*100):0);
+      const prs=dias.map(d=>Math.max(...workoutData[d].exercises.map(e=>Number(appState.weights[e.id]||0))));
+      
+      const ctx=document.getElementById('chart-semana')?.getContext('2d');
+      if(!ctx) return; 
+
+      // Cores baseadas no tema
+      const isDark = appState.theme === 'dark';
+      const blueColor = isDark ? '#60a5fa' : '#2563EB'; // blue-400 or blue-600
+      const greenColor = isDark ? '#34d399' : '#10B981'; // emerald-400 or emerald-500
+      const textColor = isDark ? '#e2e8f0' : '#1e293b'; // slate-200 or slate-800
+      const gridColor = isDark ? '#475569' : '#e2e8f0'; // slate-600 or slate-200
+
+      if(window.chartSemana){window.chartSemana.destroy();}
+      
+      window.chartSemana=new Chart(ctx,{
+        type:'bar',
+        data:{
+          labels:dias,
+          datasets:[
+            {label:'Exercícios concluídos',data:checks,backgroundColor:blueColor},
+            {label:'PR do Dia (kg)',data:prs,backgroundColor:greenColor}
+          ]
+        },
+        options:{
+          responsive: true,
+          maintainAspectRatio: false,
+          scales:{
+            y:{
+              beginAtZero:true,
+              ticks: { color: textColor },
+              grid: { color: gridColor }
+            },
+            x:{
+              ticks: { color: textColor },
+              grid: { color: gridColor }
+            }
+          },
+          plugins: {
+            legend: {
+              labels: { color: textColor }
+            }
+          }
         }
-      }
+      });
+
+      document.getElementById('info-metricas').innerHTML =
+        `<p class="mt-2 text-slate-600 dark:text-slate-300">Progresso do Dia (%): ${pcts.map((p,i)=>dias[i]+': '+p+'%').join(' | ')}</p>`;
     }
 
-    function checkDayCompletion(day) {
-      if (day === "Resumo") return false;
-      const userData = getCurrentUserData();
-      const exs = workoutData[day].exercises;
-      return exs.every((ex) => userData.completed[ex.id]);
+    window.onload=function(){
+      weeklyResetIfNeeded();
+      if(!appState.userName||appState.userName===""){openUserModal();}
+      else{renderAll();}
     }
-
-    function getAutoDay() {
-      const d = new Date();
-      const day = d.getDay();
-      if (day === 1) return "Segunda";
-      if (day === 2) return "Terça";
-      if (day === 3) return "Quarta";
-      if (day === 4) return "Quinta";
-      return "RestDay";
-    }
-
-    function isTodayRestDay() {
-      return getAutoDay() === "RestDay";
-    }
-
-    function getWeekdayName() {
-      const names = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
-      const d = new Date();
-      return names[d.getDay()];
-    }
-
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-
-    function playBeep() {
-      if (audioCtx.state === "suspended") audioCtx.resume();
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      osc.connect(gain);
-      gain.connect(audioCtx.destination);
-      osc.type = "sine";
-      osc.frequency.value = 880;
-      gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 0.5);
-      osc.start();
-      osc.stop(audioCtx.currentTime + 0.5);
-    }
-
-    function openTimer() {
-      timeLeft = 60;
-      document.getElementById("timer-modal").classList.add("open");
-      updateTimerDisplay();
-      startCountdown();
-    }
-
-    function closeTimer() {
-      clearInterval(timerInterval);
-      document.getElementById("timer-modal").classList.remove("open");
-    }
-
-    function addTime(seconds) {
-      timeLeft += seconds;
-      updateTimerDisplay();
-    }
-
-    function startCountdown() {
-      clearInterval(timerInterval);
-      timerInterval = setInterval(() => {
-        timeLeft--;
-        updateTimerDisplay();
-        if (timeLeft <= 0) {
-          clearInterval(timerInterval);
-          playBeep();
-          if ("vibrate" in navigator) navigator.vibrate([200, 100, 200]);
-          setTimeout(closeTimer, 1500);
-        }
-      }, 1000);
-    }
-
-    function updateTimerDisplay() {
-      const m = Math.floor(timeLeft / 60).toString().padStart(2, "0");
-      const s = (timeLeft % 60).toString().padStart(2, "0");
-      document.getElementById("timer-display").innerText = `${m}:${s}`;
-    }
-
-    function triggerConfetti() {
-      const canvas = document.getElementById("confetti");
-      const ctx = canvas.getContext("2d");
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-
-      const particles = [];
-      const colors = ["#2563EB", "#10B981", "F59E0B", "#EF4444"];
-
-      for (let i = 0; i < 100; i++) {
-        particles.push({
-          x: Math.random() * canvas.width,
-          y: Math.random() * canvas.height - canvas.height,
-          color: colors[Math.floor(Math.random() * colors.length)],
-          size: Math.random() * 5 + 2,
-          speed: Math.random() * 5 + 2
-        });
-      }
-
-      function animate() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        let active = false;
-        particles.forEach((p) => {
-          p.y += p.speed;
-          ctx.fillStyle = p.color;
-          ctx.fillRect(p.x, p.y, p.size, p.size);
-          if (p.y < canvas.height) active = true;
-        });
-        if (active) requestAnimationFrame(animate);
-        else ctx.clearRect(0, 0, canvas.width, canvas.height);
-      }
-      animate();
-    }
-
-    function init() {
-      updateThemeUI();
-      renderUserSelect();
-      const auto = getAutoDay();
-      currentDay = auto === "RestDay" ? "Segunda" : auto;
-      if (auto === "RestDay") {
-        renderRestDay();
-      } else {
-        renderDay(currentDay);
-      }
-    }
-
-    init();
   </script>
 </body>
 </html>
