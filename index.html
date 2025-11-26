@@ -2,152 +2,175 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Meu Treino</title>
-  <!-- Título para ser exibido ao adicionar à tela inicial (iOS/PWA) -->
+  
+  <!-- Configurações para iOS e PWA -->
   <meta name="apple-mobile-web-app-title" content="Meu Treino">
-  <!-- Carrega o Tailwind CSS para um design responsivo e moderno -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  
+  <!-- O ícone será injetado via JavaScript para garantir que funcione sem arquivos externos -->
+  <link rel="icon" id="favicon-link">
+  <link rel="apple-touch-icon" id="apple-icon-link">
+
+  <!-- Carrega o Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Carrega Chart.js para o gráfico de progresso -->
+  <!-- Carrega Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <link rel="manifest" href="manifest.webmanifest">
-  <link rel="apple-touch-icon" sizes="180x180" href="icon.png">
 
   <style>
-    /* Configurações básicas e tema escuro */
+    /* Fonte Inter para visual moderno */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+
     body {
       font-family: 'Inter', sans-serif;
       transition: background-color 0.3s, color 0.3s;
+      -webkit-tap-highlight-color: transparent; /* Remove highlight de toque no mobile */
     }
-    body[data-theme="light"] {
-      background: #f8fafc; /* slate-50 */
-      color: #1e293b; /* slate-800 */
-    }
-    body[data-theme="dark"] {
-      background: #1e293b; /* slate-800 */
-      color: #f8fafc; /* slate-50 */
-    }
-    .card, header, #settings-panel, .m-content {
-      transition: background-color 0.3s, border-color 0.3s, box-shadow 0.3s;
-    }
-    body[data-theme="dark"] .card, 
-    body[data-theme="dark"] header,
-    body[data-theme="dark"] #settings-panel,
-    body[data-theme="dark"] .grafico-metricas,
-    body[data-theme="dark"] #user-modal .m-content {
-      background: #334155; /* slate-700 */
-      border-color: #475569; /* slate-600 */
-      color: #f8fafc;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-    }
-    body[data-theme="dark"] .tab-btn { color: #cbd5e1; /* slate-300 */ }
-    body[data-theme="dark"] .tab-btn.active { background: #60a5fa; color: #1e293b; } /* blue-400 */
-    body[data-theme="dark"] .tag,
-    body[data-theme="dark"] .settings-btn { background: #475569; /* slate-600 */ color: #f8fafc; }
-    body[data-theme="dark"] input.input-weight { background: #475569; border-color: #64748b; color: #f8fafc; }
-    body[data-theme="dark"] .check-btn { background: #475569; border-color: #94a3b8; color: #e2e8f0; }
-    body[data-theme="dark"] .check-btn.checked { background: #10b981; border-color: #10b981; color: #fff; }
+    
+    /* Temas */
+    body[data-theme="light"] { background: #f8fafc; color: #1e293b; }
+    body[data-theme="dark"] { background: #0f172a; color: #f8fafc; }
 
-    /* Estilo para o modal customizado de confirmação */
-    #confirmation-modal {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.5);
-      z-index: 1000;
-      display: none;
-      align-items: center;
-      justify-content: center;
+    /* Transições suaves */
+    .card, header, #settings-panel, .m-content, .tab-btn {
+      transition: all 0.3s ease;
     }
+
+    /* Estilos Dark Mode Específicos */
+    body[data-theme="dark"] .card { background: #1e293b; border-color: #334155; }
+    body[data-theme="dark"] .tab-btn { color: #94a3b8; }
+    body[data-theme="dark"] .tab-btn.active { background: #3b82f6; color: #fff; }
+    body[data-theme="dark"] input { background: #334155; border-color: #475569; color: #fff; }
+
+    /* Modal */
+    #confirmation-modal {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+      z-index: 1000; display: none; align-items: center; justify-content: center;
+      backdrop-filter: blur(2px);
+    }
+
+    /* Animação do Check */
+    @keyframes pop {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.2); }
+      100% { transform: scale(1); }
+    }
+    .check-btn.checked { animation: pop 0.2s ease-in-out; }
   </style>
 </head>
-<body data-theme="light">
+<body data-theme="light" class="pb-safe">
+  
   <!-- Cabeçalho -->
-  <header class="bg-white p-4 border-b border-slate-200 flex items-center justify-between sticky top-0 z-10 shadow-sm">
-    <div class="flex items-center">
-      <!-- Logo atualizado para a imagem carregada pelo usuário -->
-      <img src="image_2e750c.png" class="w-10 h-10 rounded-lg mr-4 shadow-md" alt="Logo Meu Treino">
+  <header class="bg-white dark:bg-slate-900 p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between sticky top-0 z-20 shadow-sm">
+    <div class="flex items-center gap-3">
+      <!-- Logo gerado via CSS/SVG (Nunca falha) -->
+      <div id="app-logo" class="w-10 h-10 rounded-xl shadow-md bg-blue-600 flex items-center justify-center text-white font-bold text-xl select-none">
+        T
+      </div>
       <div>
-        <h1 id="header-title" class="text-xl font-extrabold text-blue-600 m-0">Treino de Hoje</h1>
-        <div class="text-sm text-slate-500 mt-0.5">Usuário: <span id="show-user-name" class="font-medium"></span></div>
+        <h1 id="header-title" class="text-lg font-extrabold text-blue-600 dark:text-blue-400 m-0 leading-tight">Treino de Hoje</h1>
+        <div class="text-xs text-slate-500 dark:text-slate-400">Olá, <span id="show-user-name" class="font-semibold">Atleta</span></div>
       </div>
     </div>
-    <button class="settings-btn bg-slate-100 border-none rounded-full w-9 h-9 cursor-pointer text-xl text-slate-600 flex items-center justify-center shadow-sm" onclick="toggleSettings()">⚙️</button>
+    <button class="w-10 h-10 rounded-full bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center justify-center text-xl transition-colors" onclick="toggleSettings()">
+      ⚙️
+    </button>
   </header>
 
   <!-- Painel de Configurações -->
-  <div id="settings-panel" class="absolute top-16 right-4 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl shadow-xl p-4 w-64 hidden z-20">
-    <h3 class="mt-0 text-lg font-semibold text-blue-600 dark:text-blue-400">Configurações</h3>
-    <hr class="my-3 border-slate-200 dark:border-slate-600">
-    <label class="text-sm font-medium text-slate-600 dark:text-slate-300">Nome de usuário:</label>
-    <input id="edit-user-name" type="text" class="w-full p-2 mt-1 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-blue-500 focus:border-blue-500 mb-3 text-slate-800 dark:bg-slate-800 dark:text-white" placeholder="Seu nome">
-    <button onclick="saveUserNameSettings()" class="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-md transition duration-150">Salvar nome</button>
-    <hr class="my-3 border-slate-200 dark:border-slate-600">
-    <label class="text-sm font-medium text-slate-600 dark:text-slate-300">Tema:</label>
-    <button onclick="toggleTheme()" class="flex items-center justify-between px-4 py-2 mt-2 rounded-full bg-slate-100 dark:bg-slate-600 hover:bg-slate-200 dark:hover:bg-slate-500 border-none w-full text-slate-800 dark:text-white font-medium">
-      <span id="theme-label">Claro</span>
+  <div id="settings-panel" class="fixed top-20 right-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl p-5 w-72 hidden z-30 transform transition-all duration-200 origin-top-right">
+    <h3 class="text-lg font-bold text-slate-800 dark:text-white mb-4">Configurações</h3>
+    
+    <label class="text-xs font-bold text-slate-500 uppercase tracking-wide">Nome</label>
+    <div class="flex gap-2 mb-4 mt-1">
+      <input id="edit-user-name" type="text" class="flex-1 p-2 rounded-lg border border-slate-300 text-sm focus:outline-none focus:border-blue-500" placeholder="Seu nome">
+      <button onclick="saveUserNameSettings()" class="bg-blue-600 text-white px-3 py-2 rounded-lg text-sm font-semibold">OK</button>
+    </div>
+    
+    <hr class="border-slate-100 dark:border-slate-700 my-4">
+    
+    <label class="text-xs font-bold text-slate-500 uppercase tracking-wide">Aparência</label>
+    <button onclick="toggleTheme()" class="flex items-center justify-between w-full p-3 mt-2 rounded-xl bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 transition-colors">
+      <span id="theme-label" class="text-sm font-medium dark:text-slate-200">Modo Claro</span>
       <span id="theme-icon">🌙</span>
     </button>
   </div>
 
-  <!-- Tabs (Navegação dos Dias) -->
-  <div class="flex justify-center bg-slate-100 dark:bg-slate-800 py-3 border-b border-slate-200 dark:border-slate-800 shadow-inner overflow-x-auto whitespace-nowrap">
-    <button class="tab-btn" onclick="renderDay('Segunda')">Segunda</button>
-    <button class="tab-btn" onclick="renderDay('Terça')">Terça</button>
-    <button class="tab-btn" onclick="renderDay('Quarta')">Quarta</button>
-    <button class="tab-btn" onclick="renderDay('Quinta')">Quinta</button>
-    <button class="tab-btn" onclick="renderDay('Resumo')">Resumo</button>
-  </div>
-
-  <!-- Conteúdo Principal do Treino -->
-  <div class="max-w-xl mx-auto px-4 mt-6" id="app-content">
-    <!-- Exercícios serão renderizados aqui -->
-  </div>
-
-  <!-- Progresso e Gráfico de Métricas -->
-  <div class="grafico-metricas max-w-xl mx-auto mt-6 mb-8 bg-white dark:bg-slate-700 rounded-xl p-4 shadow-lg border border-slate-200 dark:border-slate-600">
-    <h2 class="text-lg font-bold text-blue-600 dark:text-blue-400 mb-4">Seu Progresso da Semana</h2>
-    <canvas id="chart-semana" class="max-w-full h-52"></canvas>
-    <div id="info-metricas" class="text-sm text-slate-600 mt-4 dark:text-slate-300"></div>
-  </div>
-
-  <!-- Modal de Boas-vindas/Nome do Usuário -->
-  <div id="user-modal" class="hidden fixed inset-0 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm z-[9999] items-center justify-center">
-    <div class="m-content bg-white dark:bg-slate-700 p-6 rounded-2xl shadow-2xl text-center border border-slate-200 dark:border-slate-600 w-11/12 max-w-sm">
-      <h2 class="text-2xl font-bold text-blue-600 dark:text-blue-400 mb-3">Bem-vindo! 💪</h2>
-      <p class="text-slate-600 dark:text-slate-300 mb-4">Digite seu nome para começar a registrar seu treino:</p>
-      <input id="input-user-name" type="text" class="w-full p-3 border border-slate-300 dark:border-slate-600 rounded-lg text-lg mb-4 text-slate-800 dark:bg-slate-800 dark:text-white" placeholder="Seu nome">
-      <button onclick="saveUserNameModal()" class="w-full py-3 border-none rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-lg shadow-lg shadow-blue-500/50 transition duration-150">Salvar</button>
+  <!-- Navegação (Tabs) -->
+  <div class="sticky top-[73px] z-10 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border-b border-slate-200 dark:border-slate-800 py-2">
+    <div class="flex overflow-x-auto px-4 gap-2 no-scrollbar pb-1">
+      <button class="tab-btn whitespace-nowrap px-4 py-2 rounded-full text-sm font-semibold bg-transparent text-slate-600" onclick="renderDay('Segunda')">Segunda</button>
+      <button class="tab-btn whitespace-nowrap px-4 py-2 rounded-full text-sm font-semibold bg-transparent text-slate-600" onclick="renderDay('Terça')">Terça</button>
+      <button class="tab-btn whitespace-nowrap px-4 py-2 rounded-full text-sm font-semibold bg-transparent text-slate-600" onclick="renderDay('Quarta')">Quarta</button>
+      <button class="tab-btn whitespace-nowrap px-4 py-2 rounded-full text-sm font-semibold bg-transparent text-slate-600" onclick="renderDay('Quinta')">Quinta</button>
+      <button class="tab-btn whitespace-nowrap px-4 py-2 rounded-full text-sm font-semibold bg-transparent text-slate-600" onclick="renderDay('Resumo')">Resumo</button>
     </div>
   </div>
 
-  <!-- Modal de Confirmação Customizado (Substitui confirm()) -->
+  <!-- Conteúdo -->
+  <div class="max-w-xl mx-auto px-4 py-6 mb-20" id="app-content"></div>
+
+  <!-- Gráfico -->
+  <div class="max-w-xl mx-auto px-4 mb-10">
+    <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-sm border border-slate-200 dark:border-slate-700">
+      <h2 class="text-base font-bold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
+        <span class="text-blue-500">📊</span> Desempenho Semanal
+      </h2>
+      <div class="relative h-48 w-full">
+        <canvas id="chart-semana"></canvas>
+      </div>
+      <div id="info-metricas" class="text-xs text-slate-500 mt-4 text-center"></div>
+    </div>
+  </div>
+
+  <!-- Modal Boas Vindas -->
+  <div id="user-modal" class="hidden fixed inset-0 bg-black/50 z-50 items-center justify-center p-4 backdrop-blur-sm">
+    <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-2xl w-full max-w-sm text-center">
+      <div class="w-16 h-16 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl">💪</div>
+      <h2 class="text-xl font-bold text-slate-900 dark:text-white mb-2">Bem-vindo ao Treino!</h2>
+      <p class="text-slate-500 dark:text-slate-400 mb-6 text-sm">Como você gostaria de ser chamado?</p>
+      <input id="input-user-name" type="text" class="w-full p-3 rounded-xl border border-slate-300 dark:border-slate-600 mb-4 bg-slate-50 dark:bg-slate-700 text-center text-lg font-medium outline-none focus:ring-2 ring-blue-500" placeholder="Seu Nome">
+      <button onclick="saveUserNameModal()" class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-transform active:scale-95">Começar</button>
+    </div>
+  </div>
+
+  <!-- Modal Confirmação Reset -->
   <div id="confirmation-modal">
-    <div class="bg-white dark:bg-slate-700 p-6 rounded-xl shadow-2xl text-center border border-slate-200 dark:border-slate-600 w-11/12 max-w-xs">
-      <h3 class="text-xl font-bold mb-3 text-red-600 dark:text-red-400">Reiniciar Semana?</h3>
-      <p class="text-slate-700 dark:text-slate-200 mb-6">Tem certeza? Isso apagará todos os exercícios concluídos desta semana.</p>
-      <div class="flex justify-between gap-3">
-        <button id="confirm-cancel" class="flex-1 py-2 rounded-lg bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-200 font-semibold hover:bg-slate-300 dark:hover:bg-slate-500 transition duration-150">Cancelar</button>
-        <button id="confirm-ok" class="flex-1 py-2 rounded-lg bg-red-600 text-white font-semibold hover:bg-red-700 transition duration-150">Confirmar</button>
+    <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-2xl w-full max-w-xs text-center mx-4">
+      <div class="w-12 h-12 bg-red-100 text-red-500 rounded-full flex items-center justify-center mx-auto mb-3 text-xl">⚠️</div>
+      <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-2">Reiniciar Semana?</h3>
+      <p class="text-slate-500 dark:text-slate-400 text-sm mb-6">Todo o seu progresso desta semana será apagado.</p>
+      <div class="flex gap-3">
+        <button id="confirm-cancel" class="flex-1 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold text-sm">Cancelar</button>
+        <button id="confirm-ok" class="flex-1 py-2.5 rounded-xl bg-red-500 text-white font-semibold text-sm shadow-lg shadow-red-500/30">Confirmar</button>
       </div>
     </div>
   </div>
 
-
   <script>
-    // Configuração do Tailwind (para cores no JS)
+    // --- LÓGICA DO LOGO AUTOMÁTICO (CORREÇÃO DEFINITIVA) ---
+    // Cria um SVG dinâmico para usar como Favicon e Apple Touch Icon
+    // Isso garante que o ícone na tela inicial do iOS seja um "T" azul bonito e não um "F" ou screenshot
+    const logoSVG = `
+      <svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+        <rect width="512" height="512" rx="120" fill="#2563eb"/>
+        <path d="M130 150h252v60h-96v200h-60v-200h-96z" fill="white"/>
+      </svg>
+    `;
+    const blob = new Blob([logoSVG], { type: 'image/svg+xml' });
+    const url = URL.createObjectURL(blob);
+    document.getElementById('favicon-link').href = url;
+    document.getElementById('apple-icon-link').href = url;
+    
+    // --- Configurações Tailwind ---
     tailwind.config = {
       darkMode: 'class',
-      theme: {
-        extend: {
-          colors: {
-            'blue-main': '#2563eb', // blue-600
-            'green-done': '#10b981', // emerald-500
-            'slate-light': '#f1f5f9', // slate-100
-          }
-        }
-      }
+      theme: { extend: { colors: { 'slate-850': '#1e293b' } } }
     }
 
+    // --- Dados do Treino ---
     const workoutData = {
       Segunda: { focus: "Peito e Tríceps", exercises: [
         { id: "s1", name: "Supino Inclinado", sets: 4, reps: "8-12" },
@@ -179,10 +202,9 @@
       ]}
     };
 
-    const DB_KEY = "meutreino_state";
+    const DB_KEY = "meutreino_v2_state";
     let appState = JSON.parse(localStorage.getItem(DB_KEY)) || null;
 
-    // Inicialização do estado se não existir
     if (!appState) {
       appState = { theme: "light", userName: "", completed: {}, weights: {}, lastWeekReset: 0 };
       localStorage.setItem(DB_KEY, JSON.stringify(appState));
@@ -218,40 +240,39 @@
 
     function saveUserNameSettings(){
       const name=document.getElementById("edit-user-name").value.trim();
-      if(name.length>0){appState.userName=name;saveState();renderAll();}
+      if(name.length>0){appState.userName=name;saveState(); toggleSettings(); renderAll();}
     }
 
     function renderUserName(){
-      document.getElementById("show-user-name").innerText=appState.userName||"";
+      document.getElementById("show-user-name").innerText=appState.userName||"Atleta";
       document.getElementById("edit-user-name").value=appState.userName||"";
     }
 
-    function toggleSettings(){document.getElementById("settings-panel").classList.toggle("hidden");}
+    function toggleSettings(){
+      const p = document.getElementById("settings-panel");
+      p.classList.toggle("hidden");
+    }
 
     function toggleTheme(){
       appState.theme=appState.theme==="light"?"dark":"light";
-      document.body.setAttribute("data-theme",appState.theme);
-      document.getElementById("theme-label").innerText=appState.theme==="light"?"Claro":"Escuro";
-      document.getElementById("theme-icon").innerText=appState.theme==="light"?"🌙":"☀️";
       saveState();
-      renderSemanaChart(); // Chart colors might change
+      renderAll();
     }
 
     function getAutoDay(){
       const d=new Date().getDay();
-      if(d==1)return"Segunda";
-      if(d==2)return"Terça";
-      if(d==3)return"Quarta";
-      if(d==4)return"Quinta";
-      return"Segunda";
+      const map = {1:"Segunda", 2:"Terça", 3:"Quarta", 4:"Quinta"};
+      return map[d] || "Segunda";
     }
 
     function renderAll(){
-      // Aplica o tema
-      document.body.setAttribute("data-theme",appState.theme||"light");
-      document.getElementById("theme-label").innerText=appState.theme==="light"?"Claro":"Escuro";
-      document.getElementById("theme-icon").innerText=appState.theme==="light"?"🌙":"☀️";
-
+      const isDark = appState.theme === 'dark';
+      document.body.setAttribute("data-theme", appState.theme);
+      
+      // Update UI texts
+      document.getElementById("theme-label").innerText = isDark ? "Modo Escuro" : "Modo Claro";
+      document.getElementById("theme-icon").innerText = isDark ? "🌙" : "☀️";
+      
       renderUserName();
       renderDay(currentDay);
       renderSemanaChart();
@@ -259,14 +280,15 @@
 
     function renderDay(day){
       currentDay=day;
+      
+      // Update Tabs
       document.querySelectorAll('.tab-btn').forEach(btn=>{
-        btn.classList.remove('active', 'bg-blue-600', 'text-white', 'shadow-md', 'shadow-blue-600/30', 'dark:bg-blue-400', 'dark:text-slate-800');
-        btn.classList.add('bg-transparent', 'text-slate-600', 'dark:text-slate-300', 'px-4', 'py-2', 'mx-0.5', 'text-base', 'rounded-full', 'cursor-pointer', 'font-semibold');
-        
-        if(btn.innerText===day){
-          btn.classList.add('active', 'bg-blue-600', 'text-white', 'shadow-md', 'shadow-blue-600/30', 'dark:bg-blue-400', 'dark:text-slate-800');
-          btn.classList.remove('bg-transparent', 'text-slate-600', 'dark:text-slate-300');
-        }
+        const active = btn.innerText === day;
+        btn.className = `tab-btn whitespace-nowrap px-5 py-2 rounded-full text-sm font-bold transition-all ${
+          active 
+          ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30' 
+          : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
+        }`;
       });
       
       const container=document.getElementById('app-content');
@@ -276,7 +298,9 @@
         renderResumo(container);
         document.getElementById('header-title').innerText="Resumo Semanal";
       }else{
-        document.getElementById('header-title').innerText=day + " - " + workoutData[day].focus;
+        document.getElementById('header-title').innerHTML = `
+          ${day} <span class="block text-xs font-normal text-slate-400 dark:text-slate-500 mt-0.5">${workoutData[day].focus}</span>
+        `;
         renderExercises(container,workoutData[day].exercises);
       }
     }
@@ -285,49 +309,73 @@
       exercises.forEach((ex)=>{
         const isDone=appState.completed[ex.id];
         const weight=appState.weights[ex.id]||'';
-        const card=document.createElement('div');
         
-        // Classes Tailwind para o Card
-        const cardClasses = `card bg-white dark:bg-slate-700 rounded-xl shadow-lg p-4 mb-4 border border-slate-200 dark:border-slate-600 flex justify-between items-center flex-wrap ${isDone ? 'border-emerald-500 shadow-emerald-500/10' : ''}`;
-
-        card.className = cardClasses;
+        const card=document.createElement('div');
+        card.className = `card relative overflow-hidden bg-white dark:bg-slate-800 rounded-2xl p-4 mb-3 border-l-4 shadow-sm ${
+          isDone ? 'border-l-emerald-500' : 'border-l-blue-500'
+        } border-y border-r border-slate-100 dark:border-slate-700`;
         
         card.innerHTML=`
-          <div class="card-content flex-1">
-            <h3 class="text-lg font-bold mb-1">${ex.name}</h3>
-            <div><span class="tag bg-slate-100 dark:bg-slate-600 text-slate-600 dark:text-slate-50 px-2 py-0.5 rounded-md text-sm font-semibold">${ex.sets} x ${ex.reps}</span></div>
-            <div class="input-weight-wrapper flex items-center gap-1 mt-3">
-              <span class="text-xl">⚖️</span>
-              <input type="number" class="input-weight w-12 text-base text-center border border-slate-300 dark:border-slate-600 rounded-lg p-1 text-slate-800 dark:bg-slate-800 dark:text-white" placeholder="0" value="${weight}" onchange="updateWeight('${ex.id}',this.value)">
-              <span class="input-label text-slate-500 dark:text-slate-400">kg</span>
+          <div class="flex justify-between items-start gap-4">
+            <div class="flex-1">
+              <h3 class="text-base font-bold text-slate-800 dark:text-slate-100 leading-tight mb-1">${ex.name}</h3>
+              <span class="inline-block bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-300 px-2 py-0.5 rounded text-xs font-semibold tracking-wide">${ex.sets} x ${ex.reps}</span>
+              
+              <div class="flex items-center gap-2 mt-3">
+                <div class="bg-slate-50 dark:bg-slate-900 rounded-lg p-1 flex items-center border border-slate-200 dark:border-slate-700">
+                  <input type="number" inputmode="numeric" 
+                    class="w-12 text-center bg-transparent font-bold text-slate-700 dark:text-white outline-none" 
+                    placeholder="0" value="${weight}" 
+                    onchange="updateWeight('${ex.id}',this.value)"
+                    onclick="this.select()">
+                  <span class="text-xs text-slate-400 font-medium pr-1">kg</span>
+                </div>
+              </div>
             </div>
+            
+            <button onclick="toggleCheck('${ex.id}')" 
+              class="check-btn h-12 w-12 rounded-xl flex items-center justify-center text-2xl transition-all shadow-sm ${
+              isDone 
+              ? 'checked bg-emerald-500 text-white shadow-emerald-500/30' 
+              : 'bg-slate-50 dark:bg-slate-700 text-slate-300 dark:text-slate-600 border border-slate-200 dark:border-slate-600'
+            }">
+              ${isDone ? '✓' : ''}
+            </button>
           </div>
-          <div class="card-actions flex flex-col gap-2 ml-4">
-            <button class="check-btn w-9 h-9 rounded-full border-2 border-slate-300 dark:border-slate-500 bg-white dark:bg-slate-600 text-slate-500 dark:text-slate-300 text-xl flex items-center justify-center transition duration-150 ${isDone ? 'checked !bg-emerald-500 !text-white !border-emerald-500' : ''}" onclick="toggleCheck('${ex.id}')">✓</button>
-          </div>`;
+        `;
         container.appendChild(card);
       });
     }
 
     function renderResumo(container){
       let total=0,done=0;Object.keys(workoutData).forEach(d=>{workoutData[d].exercises.forEach(ex=>{total++;if(appState.completed[ex.id])done++;});});
+      const pct = Math.round((done/total)*100) || 0;
+      
       container.innerHTML=`
-        <div class="card bg-white dark:bg-slate-700 rounded-xl shadow-lg p-6 mb-4 border border-slate-200 dark:border-slate-600 text-center flex flex-col items-center">
-          <div class="text-5xl font-extrabold text-blue-600 dark:text-blue-400 mb-1">${done} / ${total}</div>
-          <p class="text-slate-500 dark:text-slate-400 mb-4">Exercícios totais concluídos</p>
-          <button onclick="showResetModal()" class="border-none bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-6 rounded-xl shadow-md transition duration-150 cursor-pointer">Reiniciar Semana</button>
+        <div class="bg-white dark:bg-slate-800 rounded-3xl p-8 mb-6 shadow-sm border border-slate-200 dark:border-slate-700 text-center relative overflow-hidden">
+          <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-purple-500"></div>
+          <div class="text-6xl font-black text-slate-800 dark:text-white mb-2 tracking-tighter">${pct}%</div>
+          <p class="text-slate-500 dark:text-slate-400 text-sm font-medium uppercase tracking-widest">Concluído</p>
+          <div class="mt-6 text-xs text-slate-400 bg-slate-50 dark:bg-slate-900 py-2 px-4 rounded-full inline-block">
+            ${done} de ${total} exercícios
+          </div>
         </div>
-        <div class="text-slate-500 dark:text-slate-400 text-sm mt-3 px-2">
-          💡 Dica: Toque no ✓ para marcar como feito. <br>⚖️ Cargas: O app salva o peso digitado automaticamente.
-        </div>`;
+        
+        <button onclick="showResetModal()" class="w-full bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 font-bold py-4 rounded-2xl transition-colors text-sm flex items-center justify-center gap-2">
+          <span>🗑️</span> Reiniciar Semana
+        </button>
+        `;
     }
 
     function toggleCheck(id){
       if(appState.completed[id]){delete appState.completed[id];}
       else{appState.completed[id]=true;}
       saveState();
-      renderDay(currentDay);
-      renderSemanaChart();
+      // Pequeno delay visual para sentir o clique
+      setTimeout(() => {
+        renderDay(currentDay);
+        renderSemanaChart();
+      }, 50);
     }
 
     function updateWeight(id,value){
@@ -336,27 +384,11 @@
       renderSemanaChart();
     }
 
-    // Função para mostrar o modal de confirmação (substitui 'confirm()')
     function showResetModal() {
         const modal = document.getElementById('confirmation-modal');
         modal.style.display = 'flex';
-
-        // Garante que os listeners sejam adicionados apenas uma vez ou removidos
-        const confirmOk = document.getElementById('confirm-ok');
-        const confirmCancel = document.getElementById('confirm-cancel');
-
-        // Remove listeners antigos para evitar duplicação
-        confirmOk.onclick = null;
-        confirmCancel.onclick = null;
-
-        confirmOk.onclick = () => {
-            resetWeekAction();
-            modal.style.display = 'none';
-        };
-
-        confirmCancel.onclick = () => {
-            modal.style.display = 'none';
-        };
+        document.getElementById('confirm-ok').onclick = () => { resetWeekAction(); modal.style.display = 'none'; };
+        document.getElementById('confirm-cancel').onclick = () => { modal.style.display = 'none'; };
     }
 
     function resetWeekAction(){
@@ -366,65 +398,64 @@
         renderSemanaChart();
     }
 
-    // Chart semanal
+    // --- CHART.JS CONFIG ---
+    let chartInstance = null;
     function renderSemanaChart(){
+      const ctx = document.getElementById('chart-semana')?.getContext('2d');
+      if(!ctx) return;
+
       const dias=['Segunda','Terça','Quarta','Quinta'];
+      // Dados
       const checks=dias.map(d=>workoutData[d]?workoutData[d].exercises.filter(e=>appState.completed[e.id]).length:0);
-      const totals=dias.map(d=>workoutData[d]?workoutData[d].exercises.length:0);
-      const pcts=checks.map((done,i)=>totals[i]?Math.round((done/totals[i])*100):0);
-      const prs=dias.map(d=>Math.max(...workoutData[d].exercises.map(e=>Number(appState.weights[e.id]||0))));
       
-      const ctx=document.getElementById('chart-semana')?.getContext('2d');
-      if(!ctx) return; 
-
-      // Cores baseadas no tema
+      // Cores Dinâmicas
       const isDark = appState.theme === 'dark';
-      const blueColor = isDark ? '#60a5fa' : '#2563EB'; // blue-400 or blue-600
-      const greenColor = isDark ? '#34d399' : '#10B981'; // emerald-400 or emerald-500
-      const textColor = isDark ? '#e2e8f0' : '#1e293b'; // slate-200 or slate-800
-      const gridColor = isDark ? '#475569' : '#e2e8f0'; // slate-600 or slate-200
+      const colorBar = isDark ? '#3b82f6' : '#2563eb';
+      const colorBg = isDark ? '#1e293b' : '#ffffff';
+      const colorText = isDark ? '#94a3b8' : '#64748b';
 
-      if(window.chartSemana){window.chartSemana.destroy();}
-      
-      window.chartSemana=new Chart(ctx,{
-        type:'bar',
-        data:{
-          labels:dias,
-          datasets:[
-            {label:'Exercícios concluídos',data:checks,backgroundColor:blueColor},
-            {label:'PR do Dia (kg)',data:prs,backgroundColor:greenColor}
-          ]
+      if(chartInstance) chartInstance.destroy();
+
+      chartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: ['Seg', 'Ter', 'Qua', 'Qui'],
+          datasets: [{
+            label: 'Exercícios',
+            data: checks,
+            backgroundColor: colorBar,
+            borderRadius: 6,
+            barThickness: 20
+          }]
         },
-        options:{
+        options: {
           responsive: true,
           maintainAspectRatio: false,
-          scales:{
-            y:{
-              beginAtZero:true,
-              ticks: { color: textColor },
-              grid: { color: gridColor }
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { 
+              beginAtZero: true, 
+              grid: { color: isDark ? '#334155' : '#e2e8f0', drawBorder: false },
+              ticks: { color: colorText, font: {family: 'Inter', size: 10} }
             },
-            x:{
-              ticks: { color: textColor },
-              grid: { color: gridColor }
-            }
-          },
-          plugins: {
-            legend: {
-              labels: { color: textColor }
+            x: { 
+              grid: { display: false },
+              ticks: { color: colorText, font: {family: 'Inter', size: 11, weight: '600'} }
             }
           }
         }
       });
-
-      document.getElementById('info-metricas').innerHTML =
-        `<p class="mt-2 text-slate-600 dark:text-slate-300">Progresso do Dia (%): ${pcts.map((p,i)=>dias[i]+': '+p+'%').join(' | ')}</p>`;
+      
+      const totalChecks = checks.reduce((a,b)=>a+b,0);
+      document.getElementById('info-metricas').innerText = totalChecks > 0 
+        ? `🔥 ${totalChecks} exercícios concluídos esta semana!` 
+        : "Comece a treinar para ver seus dados aqui.";
     }
 
-    window.onload=function(){
+    window.onload = function(){
       weeklyResetIfNeeded();
-      if(!appState.userName||appState.userName===""){openUserModal();}
-      else{renderAll();}
+      if(!appState.userName || appState.userName==="") openUserModal();
+      else renderAll();
     }
   </script>
 </body>
