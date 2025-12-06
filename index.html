@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Meu Treino</title>
   
+  <!-- Carrega configurações de API externas -->
+  <script src="api_config.js"></script>
+
   <!-- Configurações PWA -->
   <meta name="apple-mobile-web-app-title" content="Meu Treino">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -18,7 +21,7 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <script>
-    // Configuração do Tailwind para funcionar com a classe 'dark'
+    // Configuração do Tailwind
     tailwind.config = {
       darkMode: 'class',
       theme: {
@@ -26,7 +29,7 @@
           colors: {
             slate: {
               850: '#1e293b',
-              950: '#020617', // Fundo bem escuro para o Dark Mode
+              950: '#020617',
             }
           },
           fontFamily: {
@@ -40,21 +43,17 @@
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
-    /* Reset e Transições Suaves */
     body {
       font-family: 'Inter', sans-serif;
-      /* Transição suave de cor de fundo e texto */
       transition: background-color 0.3s ease, color 0.3s ease;
       -webkit-tap-highlight-color: transparent;
       overscroll-behavior-y: none;
     }
 
-    /* Utilitários de Transição */
     .transition-theme {
       transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease, fill 0.3s ease, stroke 0.3s ease;
     }
 
-    /* Modal e Toasts */
     .modal-overlay {
       position: fixed; inset: 0; background: rgba(0,0,0,0.6);
       z-index: 1000; display: none; align-items: center; justify-content: center;
@@ -67,7 +66,6 @@
 
     .fallback-logo { display: none; }
 
-    /* Animação Check */
     @keyframes pop {
       0% { transform: scale(1); }
       50% { transform: scale(1.2); }
@@ -75,25 +73,32 @@
     }
     .check-btn.checked { animation: pop 0.2s ease-in-out; }
 
-    /* Toast Notification */
     .toast {
       transform: translateY(-20px); opacity: 0; transition: all 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55);
     }
     .toast.show { transform: translateY(0); opacity: 1; }
+    
+    .spinner {
+      border: 3px solid rgba(255,255,255,0.3);
+      border-radius: 50%;
+      border-top: 3px solid white;
+      width: 20px;
+      height: 20px;
+      -webkit-animation: spin 1s linear infinite;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
   </style>
 </head>
-<!-- 
-  Cores definidas via classes do Tailwind:
-  Light Mode: bg-slate-100 (Cinza claro)
-  Dark Mode: dark:bg-slate-950 (Quase preto)
--->
 <body class="bg-slate-100 dark:bg-slate-950 text-slate-800 dark:text-slate-100 pb-safe transition-theme">
 
   <!-- Container de Notificações -->
   <div id="toast-container" class="fixed top-4 left-0 right-0 z-[100] flex flex-col items-center gap-2 pointer-events-none px-4"></div>
   
-  <!-- Cabeçalho Fixo -->
-  <!-- Light: Branco | Dark: Slate 900 -->
+  <!-- Cabeçalho -->
   <header class="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between sticky top-0 z-30 shadow-sm h-[72px] transition-theme">
     <div class="flex items-center gap-3">
       <div class="relative w-10 h-10 shadow-lg rounded-xl overflow-hidden group">
@@ -134,37 +139,44 @@
 
     <div class="bg-slate-50 dark:bg-slate-950/50 p-3 rounded-xl border border-slate-100 dark:border-slate-800 transition-theme">
       <label class="text-[10px] font-bold text-blue-500 uppercase tracking-widest mb-2 flex items-center justify-between">
-        Importar Treino (JSON)
-        <span class="bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded text-[9px]">IA</span>
+        Gerenciar Treino
+        <span class="bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded text-[9px] font-bold">GEMINI AI ✨</span>
       </label>
-      <textarea id="json-input" class="w-full h-32 p-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 font-mono text-[11px] focus:outline-none focus:ring-2 focus:ring-blue-500 mb-3 resize-none shadow-inner transition-theme" placeholder='Cole o JSON aqui...'></textarea>
       
+      <button id="btn-open-ai-modal" class="w-full mb-3 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-xs font-bold shadow-lg shadow-blue-500/20 hover:shadow-blue-500/40 active:scale-95 transition-all flex items-center justify-center gap-2">
+        <span>✨</span> Criar Novo Treino
+      </button>
+
+      <p class="text-[10px] text-center text-slate-400 mb-2">- OU -</p>
+
       <div class="grid grid-cols-2 gap-2">
         <button id="btn-reset-default" class="py-2.5 rounded-lg bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-xs font-bold hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors">
-          Restaurar
+          Restaurar Padrão
         </button>
-        <button id="btn-import-json" class="py-2.5 rounded-lg bg-emerald-500 text-white text-xs font-bold shadow-lg shadow-emerald-500/20 hover:bg-emerald-600 active:scale-95 transition-all">
-          Salvar
+        <button id="btn-toggle-json-area" class="py-2.5 rounded-lg bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-xs font-bold hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors">
+          Editar JSON
+        </button>
+      </div>
+
+      <div id="json-area-container" class="hidden mt-3">
+        <textarea id="json-input" class="w-full h-32 p-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 font-mono text-[11px] focus:outline-none focus:ring-2 focus:ring-blue-500 mb-2 resize-none shadow-inner transition-theme" placeholder='Cole o JSON aqui...'></textarea>
+        <button id="btn-import-json" class="w-full py-2 rounded-lg bg-emerald-500 text-white text-xs font-bold shadow-lg shadow-emerald-500/20 hover:bg-emerald-600 active:scale-95 transition-all">
+          Salvar JSON Manual
         </button>
       </div>
     </div>
   </div>
 
-  <!-- Navegação (Tabs) -->
+  <!-- Navegação -->
   <div class="sticky top-[72px] z-20 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border-b border-slate-200 dark:border-slate-800 py-3 shadow-sm transition-theme">
-    <div id="tabs-container" class="flex overflow-x-auto px-4 gap-2 no-scrollbar">
-      <!-- Tabs geradas via JS -->
-    </div>
+    <div id="tabs-container" class="flex overflow-x-auto px-4 gap-2 no-scrollbar"></div>
   </div>
 
   <!-- Conteúdo Principal -->
-  <main id="app-content" class="max-w-xl mx-auto px-4 py-6 mb-24 min-h-[60vh]">
-    <!-- Cards dos exercícios entram aqui -->
-  </main>
+  <main id="app-content" class="max-w-xl mx-auto px-4 py-6 mb-24 min-h-[60vh]"></main>
 
   <!-- Gráfico -->
   <section class="max-w-xl mx-auto px-4 pb-12">
-    <!-- Card do Gráfico: Branco no Light | Slate-800 (mais claro que fundo) no Dark -->
     <div class="bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 transition-theme">
       <h2 class="text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-6 flex items-center gap-2">
         <span class="w-2 h-2 rounded-full bg-blue-500"></span> Desempenho
@@ -176,6 +188,41 @@
     </div>
   </section>
 
+  <!-- === MODALS === -->
+
+  <!-- Modal IA Generator -->
+  <div id="ai-generator-modal" class="modal-overlay z-[70]">
+    <div class="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-2xl w-full max-w-sm mx-4 border border-slate-100 dark:border-slate-800 relative">
+      <button id="btn-close-ai" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">✕</button>
+      
+      <div class="text-center mb-6">
+        <div class="w-14 h-14 bg-gradient-to-tr from-blue-600 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-500/20">
+          <span class="text-2xl">✨</span>
+        </div>
+        <h3 class="text-xl font-bold text-slate-800 dark:text-white">Criar Treino com Gemini</h3>
+        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Descreva o seu objetivo e a IA cria o plano.</p>
+      </div>
+
+      <textarea id="ai-prompt-input" class="w-full h-24 p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4 resize-none transition-theme" placeholder="Ex: Quero um treino de 4 dias focado em hipertrofia..."></textarea>
+      
+      <button id="btn-generate-workout" class="w-full py-3.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow-xl shadow-blue-600/20 transition-all flex items-center justify-center gap-2">
+        <span id="ai-btn-text">Gerar Treino</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Modal Dica IA -->
+  <div id="ai-tip-modal" class="modal-overlay z-[70]">
+    <div class="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-2xl w-full max-w-sm mx-4 border border-slate-100 dark:border-slate-800 relative">
+      <div class="flex items-center gap-3 mb-4">
+        <div class="w-10 h-10 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400 rounded-full flex items-center justify-center text-xl">💡</div>
+        <h3 id="tip-title" class="text-lg font-bold text-slate-800 dark:text-white">Dica do Coach</h3>
+      </div>
+      <div id="tip-content" class="text-sm text-slate-600 dark:text-slate-300 leading-relaxed mb-6 min-h-[60px]">Carregando dica inteligente...</div>
+      <button id="btn-close-tip" class="w-full py-3 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-sm hover:bg-slate-200 transition-colors">Entendido</button>
+    </div>
+  </div>
+
   <!-- Modal Boas Vindas -->
   <div id="user-modal" class="modal-overlay z-[60]">
     <div class="bg-white dark:bg-slate-900 p-8 rounded-3xl shadow-2xl w-full max-w-sm text-center transform transition-all scale-100 mx-4 border border-slate-100 dark:border-slate-800">
@@ -184,16 +231,12 @@
       </div>
       <h2 class="text-2xl font-extrabold text-slate-800 dark:text-white mb-2">Vamos treinar!</h2>
       <p class="text-slate-500 dark:text-slate-400 mb-8 text-sm leading-relaxed">Para personalizar sua experiência, como você gostaria de ser chamado?</p>
-      
       <input id="input-user-name-modal" type="text" class="w-full p-4 rounded-2xl border-2 border-slate-100 dark:border-slate-700 mb-4 bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-white text-center text-lg font-bold outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all" placeholder="Seu Nome">
-      
-      <button id="btn-start-modal" class="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl transition-all transform active:scale-95 shadow-xl shadow-blue-600/20">
-        Começar Agora
-      </button>
+      <button id="btn-start-modal" class="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl transition-all transform active:scale-95 shadow-xl shadow-blue-600/20">Começar Agora</button>
     </div>
   </div>
 
-  <!-- Modal Confirmação Reset (Genérico) -->
+  <!-- Modal Confirmação -->
   <div id="confirmation-modal" class="modal-overlay">
     <div class="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-2xl w-full max-w-xs text-center mx-4 border border-slate-100 dark:border-slate-800">
       <div class="w-14 h-14 bg-red-50 dark:bg-red-900/20 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">🗑️</div>
@@ -208,17 +251,23 @@
 
   <script>
     /* =================================================================
-       CONSTANTS & CONFIG
+       1. CONFIGURAÇÃO E CONSTANTES
     ================================================================= */
+    
+    /* 1.1 Chaves de API e Configuração Externa */
+    const API_KEYS = window.API_CONFIG || { gemini: "" };
+
+    /* 1.2 Constantes do Sistema */
     const CONFIG = {
-      DB_STATE: "meutreino_v5_state",
-      DB_DATA: "meutreino_v5_data",
+      DB_STATE: "meutreino_v6_state",
+      DB_DATA: "meutreino_v6_data",
       THEME_COLORS: {
         dark: { bar: '#3b82f6', grid: '#334155', text: '#94a3b8' },
         light: { bar: '#2563eb', grid: '#e2e8f0', text: '#64748b' }
       }
     };
 
+    /* 1.3 Dados Padrão (Fallback) */
     const DEFAULT_WORKOUT_JSON = {
       "Segunda": {
         "focus": "Peito, Tríceps e Ombro (Lateral)",
@@ -269,23 +318,65 @@
     };
 
     /* =================================================================
-       DOM CACHE & UTILS
+       2. SERVIÇOS NUCLEARES (CORE SERVICES)
     ================================================================= */
-    const DOM = {};
     
-    function cacheDOM() {
-      const ids = [
-        'header-title', 'show-user-name', 'btn-settings', 'settings-panel', 
-        'btn-close-settings', 'edit-user-name', 'btn-save-name-settings',
-        'btn-toggle-theme', 'theme-label', 'theme-icon', 'json-input', 
-        'btn-reset-default', 'btn-import-json', 'tabs-container', 'app-content',
-        'chart-semana', 'info-metricas', 'user-modal', 'input-user-name-modal',
-        'btn-start-modal', 'confirmation-modal', 'modal-title', 'modal-desc',
-        'btn-modal-cancel', 'btn-modal-confirm', 'toast-container'
-      ];
-      ids.forEach(id => DOM[id] = document.getElementById(id));
-    }
+    /* 2.1 Serviço de Inteligência Artificial (Apenas Gemini) */
+    const AIService = {
+      getProvider() {
+        return 'gemini';
+      },
 
+      getKey() {
+        return API_KEYS.gemini || '';
+      },
+
+      async call(prompt, systemContext = "") {
+        const apiKey = this.getKey();
+
+        if (!apiKey) throw new Error(`Chave da API (Gemini) não configurada em api_config.js.`);
+
+        // --- GEMINI IMPLEMENTATION ---
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: systemContext + "\n\n" + prompt }] }]
+          })
+        });
+        const data = await response.json();
+        if (data.error) throw new Error(data.error.message);
+        return data.candidates[0].content.parts[0].text;
+      },
+
+      async generateWorkout(userGoal) {
+        const systemPrompt = `
+          Act as a professional personal trainer.
+          You MUST return ONLY a valid JSON object. Do not include markdown formatting (like \`\`\`json).
+          The JSON structure must be EXACTLY like this:
+          {
+            "Segunda": { "focus": "...", "exercises": [{ "id": "seg1", "name": "...", "sets": 4, "reps": "12" }] },
+            "Terça": { ... }
+          }
+          Rules:
+          1. Use Portuguese language.
+          2. Ensure IDs are unique.
+        `;
+        const prompt = `Create a workout plan for: "${userGoal}".`;
+        
+        const result = await this.call(prompt, systemPrompt);
+        const cleanJson = result.replace(/```json/g, '').replace(/```/g, '').trim();
+        return JSON.parse(cleanJson);
+      },
+
+      async getExerciseTip(exerciseName) {
+        const prompt = `Explica resumidamente como executar o exercício: "${exerciseName}". Dê 3 dicas curtas de postura em Português (bullet points). Máximo 50 palavras.`;
+        return await this.call(prompt, "You are a helpful gym coach.");
+      }
+    };
+
+    /* 2.2 Utilitários e Helpers */
     const Utils = {
       getWeekNumber: (d = new Date()) => {
         d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
@@ -307,8 +398,10 @@
     };
 
     /* =================================================================
-       STATE MANAGEMENT
+       3. GERENCIAMENTO DE ESTADO (STATE)
     ================================================================= */
+    
+    /* 3.1 Definição e Inicialização do Estado */
     const State = {
       app: { theme: "light", userName: "", completed: {}, weights: {}, lastWeekReset: 0 },
       workout: {},
@@ -364,8 +457,29 @@
     };
 
     /* =================================================================
-       UI MANAGER
+       4. INTERFACE DO USUÁRIO (UI MANAGER)
     ================================================================= */
+    
+    /* 4.1 Cache do DOM */
+    const DOM = {};
+    
+    function cacheDOM() {
+      const ids = [
+        'header-title', 'show-user-name', 'btn-settings', 'settings-panel', 
+        'btn-close-settings', 'edit-user-name', 'btn-save-name-settings',
+        'btn-toggle-theme', 'theme-label', 'theme-icon', 'json-input', 
+        'btn-reset-default', 'btn-import-json', 'tabs-container', 'app-content',
+        'chart-semana', 'info-metricas', 'user-modal', 'input-user-name-modal',
+        'btn-start-modal', 'confirmation-modal', 'modal-title', 'modal-desc',
+        'btn-modal-cancel', 'btn-modal-confirm', 'toast-container',
+        'btn-toggle-json-area', 'json-area-container',
+        'ai-generator-modal', 'btn-open-ai-modal', 'btn-close-ai', 'ai-prompt-input', 'btn-generate-workout', 'ai-btn-text',
+        'ai-tip-modal', 'tip-title', 'tip-content', 'btn-close-tip'
+      ];
+      ids.forEach(id => DOM[id] = document.getElementById(id));
+    }
+
+    /* 4.2 Gerenciador de UI */
     const UI = {
       showToast(message, type = 'success') {
         const el = document.createElement('div');
@@ -376,7 +490,7 @@
         requestAnimationFrame(() => el.classList.add('show'));
         setTimeout(() => {
           el.classList.remove('show');
-          setTimeout(() => el.remove(), 300);
+          setTimeout(() => el.remove(), 3000);
         }, 3000);
       },
 
@@ -395,13 +509,66 @@
       toggleSettings(forceClose = false) {
         const p = DOM['settings-panel'];
         const isHidden = p.classList.contains('hidden');
-        
         if (forceClose || !isHidden) {
           p.classList.add('opacity-0', 'scale-95');
           setTimeout(() => p.classList.add('hidden'), 200);
         } else {
           p.classList.remove('hidden');
           requestAnimationFrame(() => p.classList.remove('opacity-0', 'scale-95'));
+        }
+      },
+
+      // --- AI UI Functions ---
+      openAiModal() {
+        UI.toggleSettings(true); 
+        DOM['ai-generator-modal'].classList.add('show');
+        DOM['ai-prompt-input'].value = '';
+        DOM['ai-prompt-input'].focus();
+      },
+
+      async handleGenerateWorkout() {
+        const prompt = DOM['ai-prompt-input'].value.trim();
+        if(!prompt) return UI.showToast("Descreva o objetivo do treino.", "error");
+
+        const btn = DOM['btn-generate-workout'];
+        const btnText = DOM['ai-btn-text'];
+        
+        btn.disabled = true;
+        const originalText = btnText.innerText;
+        btnText.innerHTML = '<div class="spinner"></div>';
+        
+        try {
+          const newWorkout = await AIService.generateWorkout(prompt);
+          
+          if(!Utils.validateWorkoutJSON(newWorkout)) throw new Error("IA gerou formato inválido.");
+          
+          State.workout = newWorkout;
+          State.saveWorkout();
+          State.init();
+          
+          DOM['ai-generator-modal'].classList.remove('show');
+          UI.renderAll();
+          UI.showToast("Treino gerado com sucesso! ✨");
+        } catch (e) {
+          UI.showToast("Erro: " + e.message, "error");
+          console.error(e);
+        } finally {
+          btn.disabled = false;
+          btnText.innerText = originalText;
+        }
+      },
+
+      async openTipModal(exerciseName, btnElement) {
+        DOM['tip-title'].innerText = exerciseName;
+        DOM['tip-content'].innerHTML = '<div class="flex justify-center p-4"><div class="spinner border-slate-400 border-t-blue-500"></div></div>';
+        DOM['ai-tip-modal'].classList.add('show');
+        
+        try {
+          const tip = await AIService.getExerciseTip(exerciseName);
+          const formattedTip = tip.replace(/\n/g, '<br>');
+          DOM['tip-content'].innerHTML = formattedTip;
+        } catch(e) {
+          DOM['tip-content'].innerText = "Erro ao carregar dica: " + e.message;
         }
       },
 
@@ -413,18 +580,11 @@
         this.renderChart();
       },
 
-      // CORREÇÃO PRINCIPAL: Toggle da classe 'dark' no HTML
       applyTheme() {
         const isDark = State.app.theme === 'dark';
-        
-        // Aplica a classe ao elemento HTML para o Tailwind funcionar
         document.documentElement.classList.toggle('dark', isDark);
-        
         DOM['theme-label'].innerText = isDark ? "Modo Escuro" : "Modo Claro";
         DOM['theme-icon'].innerText = isDark ? "🌙" : "☀️";
-        
-        // Atualiza a meta tag de cor do navegador (opcional, para mobile ficar top)
-        // Se houver meta theme-color, atualizamos. Se não, não fazemos nada.
       },
 
       renderUser() {
@@ -440,7 +600,7 @@
         const createBtn = (label, key) => {
           const btn = document.createElement('button');
           const isActive = State.currentDay === key;
-          btn.className = `tab-btn whitespace-nowrap px-5 py-2.5 rounded-full text-sm font-bold transition-all transform ${
+          btn.className = `whitespace-nowrap px-5 py-2.5 rounded-full text-sm font-bold transition-all transform ${
             isActive 
             ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/40 scale-105' 
             : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
@@ -480,8 +640,6 @@
           const weight = State.app.weights[ex.id] || '';
           
           const card = document.createElement('div');
-          // Cards: Branco no Light | Slate-800 no Dark. 
-          // O fundo do body no Dark é Slate-950, então 800 destaca.
           card.className = `card relative overflow-hidden bg-white dark:bg-slate-800 rounded-2xl p-5 mb-4 border-l-[6px] shadow-sm hover:shadow-md transition-theme ${
             isDone ? 'border-l-emerald-500' : 'border-l-blue-500'
           } border-y border-r border-slate-100 dark:border-slate-800`;
@@ -489,7 +647,10 @@
           card.innerHTML = `
             <div class="flex justify-between items-start gap-4">
               <div class="flex-1">
-                <h3 class="text-[17px] font-bold text-slate-800 dark:text-slate-100 leading-tight mb-2 transition-theme">${ex.name}</h3>
+                <div class="flex items-start justify-between">
+                  <h3 class="text-[17px] font-bold text-slate-800 dark:text-slate-100 leading-tight mb-2 transition-theme">${ex.name}</h3>
+                  <button class="btn-tip bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400 w-8 h-8 rounded-full flex items-center justify-center text-sm hover:scale-110 transition-transform" data-name="${ex.name}" aria-label="Dica IA">💡</button>
+                </div>
                 <div class="flex flex-wrap gap-2 mb-3">
                   <span class="bg-slate-100 dark:bg-slate-700/60 text-slate-600 dark:text-slate-300 px-2.5 py-1 rounded-lg text-xs font-bold uppercase tracking-wider transition-theme">${ex.sets} séries</span>
                   <span class="bg-slate-100 dark:bg-slate-700/60 text-slate-600 dark:text-slate-300 px-2.5 py-1 rounded-lg text-xs font-bold uppercase tracking-wider transition-theme">${ex.reps} reps</span>
@@ -605,21 +766,28 @@
     };
 
     /* =================================================================
-       EVENT LISTENERS
+       5. MANIPULAÇÃO DE EVENTOS (HANDLERS)
     ================================================================= */
+    
+    /* 5.1 Inicialização de Listeners */
     function initEvents() {
+      // Configs
       DOM['btn-settings'].addEventListener('click', () => UI.toggleSettings());
       DOM['btn-close-settings'].addEventListener('click', () => UI.toggleSettings(true));
-      
       DOM['btn-save-name-settings'].addEventListener('click', () => {
         const name = DOM['edit-user-name'].value.trim();
         if(name) { State.app.userName = name; State.saveApp(); UI.toggleSettings(); UI.renderAll(); UI.showToast("Nome salvo!"); }
       });
-      
       DOM['btn-toggle-theme'].addEventListener('click', () => {
         State.app.theme = State.app.theme === 'light' ? 'dark' : 'light';
         State.saveApp();
-        UI.renderAll(); // Isso agora chama applyTheme, que chama toggle('dark')
+        UI.renderAll();
+      });
+
+      // JSON Manual Toggle
+      DOM['btn-toggle-json-area'].addEventListener('click', () => {
+        const area = DOM['json-area-container'];
+        area.classList.toggle('hidden');
       });
 
       DOM['btn-import-json'].addEventListener('click', () => {
@@ -649,6 +817,13 @@
         });
       });
 
+      // AI Events
+      DOM['btn-open-ai-modal'].addEventListener('click', UI.openAiModal);
+      DOM['btn-close-ai'].addEventListener('click', () => DOM['ai-generator-modal'].classList.remove('show'));
+      DOM['btn-generate-workout'].addEventListener('click', UI.handleGenerateWorkout);
+      DOM['btn-close-tip'].addEventListener('click', () => DOM['ai-tip-modal'].classList.remove('show'));
+      
+      // User Modal
       DOM['btn-start-modal'].addEventListener('click', () => {
         const name = DOM['input-user-name-modal'].value.trim();
         if(name) {
@@ -659,18 +834,25 @@
         }
       });
 
+      // Confirm Modal
       DOM['btn-modal-cancel'].addEventListener('click', UI.closeModal);
       DOM['btn-modal-confirm'].addEventListener('click', () => {
         if(State.pendingModalAction) State.pendingModalAction();
         UI.closeModal();
       });
 
+      // Event Delegation
       DOM['app-content'].addEventListener('click', (e) => {
-        const btn = e.target.closest('.check-btn');
-        if (btn) {
-          const id = btn.dataset.id;
+        const btnCheck = e.target.closest('.check-btn');
+        if (btnCheck) {
+          const id = btnCheck.dataset.id;
           State.toggleCheck(id);
           setTimeout(() => UI.renderAll(), 50);
+        }
+
+        const btnTip = e.target.closest('.btn-tip');
+        if (btnTip) {
+          UI.openTipModal(btnTip.dataset.name, btnTip);
         }
       });
 
@@ -682,14 +864,14 @@
     }
 
     /* =================================================================
-       INIT
+       6. INICIALIZAÇÃO DO SISTEMA (BOOTSTRAP)
     ================================================================= */
     window.onload = function() {
       cacheDOM();
       State.init();
       initEvents();
       if(!State.app.userName) DOM['user-modal'].classList.add('show');
-      UI.renderAll(); // Aplica tema no carregamento
+      UI.renderAll();
     };
 
   </script>
