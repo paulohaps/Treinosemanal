@@ -321,7 +321,7 @@
        2. SERVIÇOS NUCLEARES (CORE SERVICES)
     ================================================================= */
     
-    /* 2.1 Serviço de Inteligência Artificial (Apenas Gemini) */
+   /* 2.1 Serviço de Inteligência Artificial (Apenas Gemini) */
     const AIService = {
       getProvider() {
         return 'gemini';
@@ -332,50 +332,64 @@
       },
 
       async call(prompt, systemContext = "") {
-        const apiKey = this.getKey();
-
-        if (!apiKey) throw new Error(`Chave da API (Gemini) não configurada em api_config.js.`);
-
-        // --- GEMINI IMPLEMENTATION ---
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
-        const response = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: systemContext + "\n\n" + prompt }] }]
-          })
-        });
-        const data = await response.json();
-        if (data.error) throw new Error(data.error.message);
-        return data.candidates[0].content.parts[0].text;
+        // ... (Mantenha a função call como está) ...
       },
 
+      // 🔽 COLE O CÓDIGO NOVO AQUI, SUBSTITUINDO A FUNÇÃO ANTIGA 🔽
       async generateWorkout(userGoal) {
+        // Prompt reforçado para garantir a estrutura exata
         const systemPrompt = `
-          Act as a professional personal trainer.
-          You MUST return ONLY a valid JSON object. Do not include markdown formatting (like \`\`\`json).
-          The JSON structure must be EXACTLY like this:
+          Atue como um personal trainer especialista.
+          Crie um plano de treino baseado no pedido: "${userGoal}".
+          
+          REGRAS OBRIGATÓRIAS DE SAÍDA:
+          1. Retorne APENAS o código JSON cru.
+          2. NÃO use blocos de código markdown (sem \`\`\`json).
+          3. NÃO escreva nenhuma introdução ou conclusão.
+          4. Siga estritamente esta estrutura de chaves:
           {
-            "Segunda": { "focus": "...", "exercises": [{ "id": "seg1", "name": "...", "sets": 4, "reps": "12" }] },
+            "Segunda": {
+              "focus": "Descrição do Foco",
+              "exercises": [
+                { "id": "s1", "name": "Supino", "sets": 4, "reps": "10" }
+              ]
+            },
             "Terça": { ... }
           }
-          Rules:
-          1. Use Portuguese language.
-          2. Ensure IDs are unique.
+          5. Use Português. Garanta que cada exercício tenha 'id', 'name', 'sets' e 'reps'.
         `;
-        const prompt = `Create a workout plan for: "${userGoal}".`;
         
-        const result = await this.call(prompt, systemPrompt);
-        const cleanJson = result.replace(/```json/g, '').replace(/```/g, '').trim();
-        return JSON.parse(cleanJson);
+        try {
+          // Chama a função call passando o systemPrompt como instrução
+          const result = await this.call(systemPrompt); 
+          
+          // 1. Remove formatação Markdown comum
+          let cleanJson = result.replace(/```json/g, '').replace(/```/g, '');
+          
+          // 2. Extração Cirúrgica: Pega tudo entre a primeira '{' e a última '}'
+          const firstBrace = cleanJson.indexOf('{');
+          const lastBrace = cleanJson.lastIndexOf('}');
+          
+          if (firstBrace !== -1 && lastBrace !== -1) {
+            cleanJson = cleanJson.substring(firstBrace, lastBrace + 1);
+          }
+          
+          // 3. Tenta converter
+          return JSON.parse(cleanJson);
+          
+        } catch (e) {
+          console.error("Erro no parse da IA:", e);
+          console.log("Texto recebido:", result); // Ajuda no debug
+          throw new Error("Formato de treino incompatível. Tente novamente.");
+        }
       },
+      // 🔼 FIM DO CÓDIGO NOVO 🔼
 
       async getExerciseTip(exerciseName) {
-        const prompt = `Explica resumidamente como executar o exercício: "${exerciseName}". Dê 3 dicas curtas de postura em Português (bullet points). Máximo 50 palavras.`;
-        return await this.call(prompt, "You are a helpful gym coach.");
+         // ... (Mantenha a função getExerciseTip como está) ...
       }
     };
-
+    
     /* 2.2 Utilitários e Helpers */
     const Utils = {
       getWeekNumber: (d = new Date()) => {
