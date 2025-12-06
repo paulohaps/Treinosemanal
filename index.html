@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" class="antialiased">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -17,38 +17,50 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+  <script>
+    // Configuração do Tailwind para funcionar com a classe 'dark'
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            slate: {
+              850: '#1e293b',
+              950: '#020617', // Fundo bem escuro para o Dark Mode
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
 
-    /* Reset e Base */
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+    /* Reset e Transições Suaves */
     body {
       font-family: 'Inter', sans-serif;
-      transition: background-color 0.3s, color 0.3s;
+      /* Transição suave de cor de fundo e texto */
+      transition: background-color 0.3s ease, color 0.3s ease;
       -webkit-tap-highlight-color: transparent;
       overscroll-behavior-y: none;
     }
-    
-    /* Temas */
-    body[data-theme="light"] { background: #f8fafc; color: #1e293b; }
-    body[data-theme="dark"] { background: #0f172a; color: #f8fafc; }
 
-    /* Transições */
-    .card, header, #settings-panel, .tab-btn, input, textarea {
-      transition: all 0.3s ease;
+    /* Utilitários de Transição */
+    .transition-theme {
+      transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease, fill 0.3s ease, stroke 0.3s ease;
     }
 
-    /* Dark Mode Overrides */
-    body[data-theme="dark"] .card { background: #1e293b; border-color: #334155; }
-    body[data-theme="dark"] .tab-btn { color: #94a3b8; }
-    body[data-theme="dark"] .tab-btn.active { background: #3b82f6; color: #fff; }
-    body[data-theme="dark"] input, body[data-theme="dark"] textarea { background: #334155; border-color: #475569; color: #fff; }
-
-    /* Modal e Utilitários */
-    #confirmation-modal {
+    /* Modal e Toasts */
+    .modal-overlay {
       position: fixed; inset: 0; background: rgba(0,0,0,0.6);
       z-index: 1000; display: none; align-items: center; justify-content: center;
-      backdrop-filter: blur(2px);
+      backdrop-filter: blur(4px); opacity: 0; transition: opacity 0.3s ease;
     }
+    .modal-overlay.show { display: flex; opacity: 1; }
 
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
@@ -63,501 +75,623 @@
     }
     .check-btn.checked { animation: pop 0.2s ease-in-out; }
 
-    /* Estilo do Editor JSON */
-    .json-editor {
-      font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
-      font-size: 11px;
-      line-height: 1.4;
-      white-space: pre;
-      overflow-x: auto;
+    /* Toast Notification */
+    .toast {
+      transform: translateY(-20px); opacity: 0; transition: all 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55);
     }
+    .toast.show { transform: translateY(0); opacity: 1; }
   </style>
 </head>
-<body data-theme="light" class="pb-safe">
+<!-- 
+  Cores definidas via classes do Tailwind:
+  Light Mode: bg-slate-100 (Cinza claro)
+  Dark Mode: dark:bg-slate-950 (Quase preto)
+-->
+<body class="bg-slate-100 dark:bg-slate-950 text-slate-800 dark:text-slate-100 pb-safe transition-theme">
+
+  <!-- Container de Notificações -->
+  <div id="toast-container" class="fixed top-4 left-0 right-0 z-[100] flex flex-col items-center gap-2 pointer-events-none px-4"></div>
   
   <!-- Cabeçalho Fixo -->
-  <header class="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between sticky top-0 z-30 shadow-sm h-[72px]">
+  <!-- Light: Branco | Dark: Slate 900 -->
+  <header class="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between sticky top-0 z-30 shadow-sm h-[72px] transition-theme">
     <div class="flex items-center gap-3">
-      <!-- Logo -->
       <div class="relative w-10 h-10 shadow-lg rounded-xl overflow-hidden group">
         <img src="icon.png" alt="Logo" class="w-full h-full object-cover" onerror="this.style.display='none'; document.getElementById('fallback-logo').style.display='flex'">
         <div id="fallback-logo" class="fallback-logo w-full h-full absolute top-0 left-0 bg-gradient-to-br from-blue-600 to-indigo-600 items-center justify-center text-white font-bold text-xl select-none">T</div>
       </div>
-
       <div>
-        <h1 id="header-title" class="text-lg font-extrabold text-blue-600 dark:text-blue-400 m-0 leading-tight">Treino</h1>
-        <div class="text-xs text-slate-500 dark:text-slate-400 font-medium">Olá, <span id="show-user-name" class="text-slate-700 dark:text-slate-200">Atleta</span></div>
+        <h1 id="header-title" class="text-lg font-extrabold text-blue-600 dark:text-blue-400 m-0 leading-tight transition-theme">Treino</h1>
+        <div class="text-xs text-slate-500 dark:text-slate-400 font-medium transition-theme">Olá, <span id="show-user-name" class="text-slate-700 dark:text-slate-200">Atleta</span></div>
       </div>
     </div>
     
-    <button class="w-10 h-10 rounded-full bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center justify-center text-xl transition-all active:scale-90 shadow-sm border border-slate-200 dark:border-slate-700" onclick="toggleSettings()">
+    <button id="btn-settings" aria-label="Abrir Configurações" class="w-10 h-10 rounded-full bg-slate-50 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 flex items-center justify-center text-xl transition-all active:scale-90 shadow-sm border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300">
       ⚙️
     </button>
   </header>
 
   <!-- Painel de Configurações -->
-  <div id="settings-panel" class="fixed top-[80px] right-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl p-5 w-80 hidden z-40 transform transition-all duration-300 origin-top-right overflow-y-auto max-h-[80vh]">
+  <div id="settings-panel" class="fixed top-[80px] right-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-5 w-80 hidden z-40 transform transition-all duration-300 origin-top-right overflow-y-auto max-h-[80vh]">
     <div class="flex justify-between items-center mb-4">
       <h3 class="text-lg font-bold text-slate-800 dark:text-white">Ajustes</h3>
-      <button onclick="toggleSettings()" class="text-slate-400 hover:text-slate-600">✕</button>
+      <button id="btn-close-settings" aria-label="Fechar Configurações" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 px-2 text-xl">✕</button>
     </div>
     
-    <!-- Nome -->
     <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 block">Seu Perfil</label>
     <div class="flex gap-2 mb-5">
-      <input id="edit-user-name" type="text" class="flex-1 p-2.5 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Seu nome">
-      <button onclick="saveUserNameSettings()" class="bg-blue-600 text-white px-4 rounded-xl text-sm font-bold shadow-lg shadow-blue-500/20 active:scale-95 transition-transform">OK</button>
+      <input id="edit-user-name" type="text" class="flex-1 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-white text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 transition-theme" placeholder="Seu nome">
+      <button id="btn-save-name-settings" class="bg-blue-600 text-white px-4 rounded-xl text-sm font-bold shadow-lg shadow-blue-500/20 active:scale-95 transition-transform">OK</button>
     </div>
     
-    <!-- Tema -->
     <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 block">Visual</label>
-    <button onclick="toggleTheme()" class="flex items-center justify-between w-full p-3 rounded-xl bg-slate-100 dark:bg-slate-700/50 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors mb-5 border border-transparent dark:border-slate-600">
-      <span id="theme-label" class="text-sm font-semibold text-slate-700 dark:text-slate-200">Modo Claro</span>
-      <span id="theme-icon" class="text-lg">☀️</span>
+    <button id="btn-toggle-theme" class="flex items-center justify-between w-full p-3 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors mb-5 border border-transparent dark:border-slate-700 group">
+      <span id="theme-label" class="text-sm font-semibold text-slate-700 dark:text-slate-200 transition-theme">Modo Claro</span>
+      <span id="theme-icon" class="text-lg group-hover:scale-110 transition-transform">☀️</span>
     </button>
 
-    <hr class="border-slate-100 dark:border-slate-700 my-4">
+    <hr class="border-slate-100 dark:border-slate-800 my-4 transition-theme">
 
-    <!-- Área de JSON -->
-    <div class="bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-100 dark:border-slate-700">
+    <div class="bg-slate-50 dark:bg-slate-950/50 p-3 rounded-xl border border-slate-100 dark:border-slate-800 transition-theme">
       <label class="text-[10px] font-bold text-blue-500 uppercase tracking-widest mb-2 flex items-center justify-between">
         Importar Treino (JSON)
         <span class="bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded text-[9px]">IA</span>
       </label>
-      <textarea id="json-input" class="json-editor w-full h-32 p-3 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-3 resize-none shadow-inner" placeholder='Cole o JSON aqui...'></textarea>
+      <textarea id="json-input" class="w-full h-32 p-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 font-mono text-[11px] focus:outline-none focus:ring-2 focus:ring-blue-500 mb-3 resize-none shadow-inner transition-theme" placeholder='Cole o JSON aqui...'></textarea>
       
       <div class="grid grid-cols-2 gap-2">
-        <button onclick="resetToDefault()" class="py-2.5 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-bold hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors">
+        <button id="btn-reset-default" class="py-2.5 rounded-lg bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-xs font-bold hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors">
           Restaurar
         </button>
-        <button onclick="importWorkoutJson()" class="py-2.5 rounded-lg bg-emerald-500 text-white text-xs font-bold shadow-lg shadow-emerald-500/20 hover:bg-emerald-600 active:scale-95 transition-all">
-          Salvar Treino
+        <button id="btn-import-json" class="py-2.5 rounded-lg bg-emerald-500 text-white text-xs font-bold shadow-lg shadow-emerald-500/20 hover:bg-emerald-600 active:scale-95 transition-all">
+          Salvar
         </button>
       </div>
     </div>
   </div>
 
   <!-- Navegação (Tabs) -->
-  <div class="sticky top-[72px] z-20 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border-b border-slate-200 dark:border-slate-800 py-3 shadow-sm">
-    <div class="flex overflow-x-auto px-4 gap-2 no-scrollbar" id="tabs-container">
+  <div class="sticky top-[72px] z-20 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border-b border-slate-200 dark:border-slate-800 py-3 shadow-sm transition-theme">
+    <div id="tabs-container" class="flex overflow-x-auto px-4 gap-2 no-scrollbar">
       <!-- Tabs geradas via JS -->
     </div>
   </div>
 
   <!-- Conteúdo Principal -->
-  <main class="max-w-xl mx-auto px-4 py-6 mb-24 min-h-[60vh]" id="app-content">
+  <main id="app-content" class="max-w-xl mx-auto px-4 py-6 mb-24 min-h-[60vh]">
     <!-- Cards dos exercícios entram aqui -->
   </main>
 
-  <!-- Gráfico Fixo no final -->
+  <!-- Gráfico -->
   <section class="max-w-xl mx-auto px-4 pb-12">
-    <div class="bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-700">
+    <!-- Card do Gráfico: Branco no Light | Slate-800 (mais claro que fundo) no Dark -->
+    <div class="bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 transition-theme">
       <h2 class="text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-6 flex items-center gap-2">
         <span class="w-2 h-2 rounded-full bg-blue-500"></span> Desempenho
       </h2>
       <div class="relative h-56 w-full">
         <canvas id="chart-semana"></canvas>
       </div>
-      <div id="info-metricas" class="text-xs font-medium text-slate-400 mt-6 text-center bg-slate-50 dark:bg-slate-900 py-2 rounded-lg"></div>
+      <div id="info-metricas" class="text-xs font-medium text-slate-400 mt-6 text-center bg-slate-50 dark:bg-slate-900 py-2 rounded-lg transition-theme"></div>
     </div>
   </section>
 
   <!-- Modal Boas Vindas -->
-  <div id="user-modal" class="hidden fixed inset-0 bg-slate-900/80 z-[60] items-center justify-center p-4 backdrop-blur-sm transition-opacity">
-    <div class="bg-white dark:bg-slate-800 p-8 rounded-3xl shadow-2xl w-full max-w-sm text-center transform transition-all scale-100">
+  <div id="user-modal" class="modal-overlay z-[60]">
+    <div class="bg-white dark:bg-slate-900 p-8 rounded-3xl shadow-2xl w-full max-w-sm text-center transform transition-all scale-100 mx-4 border border-slate-100 dark:border-slate-800">
       <div class="w-20 h-20 bg-gradient-to-tr from-blue-500 to-indigo-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg shadow-blue-500/30">
         <span class="text-4xl">💪</span>
       </div>
       <h2 class="text-2xl font-extrabold text-slate-800 dark:text-white mb-2">Vamos treinar!</h2>
       <p class="text-slate-500 dark:text-slate-400 mb-8 text-sm leading-relaxed">Para personalizar sua experiência, como você gostaria de ser chamado?</p>
       
-      <input id="input-user-name" type="text" class="w-full p-4 rounded-2xl border-2 border-slate-100 dark:border-slate-700 mb-4 bg-slate-50 dark:bg-slate-900 text-center text-lg font-bold outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all" placeholder="Seu Nome">
+      <input id="input-user-name-modal" type="text" class="w-full p-4 rounded-2xl border-2 border-slate-100 dark:border-slate-700 mb-4 bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-white text-center text-lg font-bold outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all" placeholder="Seu Nome">
       
-      <button onclick="saveUserNameModal()" class="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl transition-all transform active:scale-95 shadow-xl shadow-blue-600/20">
+      <button id="btn-start-modal" class="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl transition-all transform active:scale-95 shadow-xl shadow-blue-600/20">
         Começar Agora
       </button>
     </div>
   </div>
 
-  <!-- Modal Confirmação Reset -->
-  <div id="confirmation-modal">
-    <div class="bg-white dark:bg-slate-800 p-6 rounded-3xl shadow-2xl w-full max-w-xs text-center mx-4 border border-slate-100 dark:border-slate-700">
+  <!-- Modal Confirmação Reset (Genérico) -->
+  <div id="confirmation-modal" class="modal-overlay">
+    <div class="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-2xl w-full max-w-xs text-center mx-4 border border-slate-100 dark:border-slate-800">
       <div class="w-14 h-14 bg-red-50 dark:bg-red-900/20 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">🗑️</div>
-      <h3 class="text-lg font-bold text-slate-800 dark:text-white mb-2">Reiniciar Semana?</h3>
-      <p class="text-slate-500 dark:text-slate-400 text-sm mb-6 leading-relaxed">Todo o seu histórico de check-ins desta semana será apagado.</p>
+      <h3 id="modal-title" class="text-lg font-bold text-slate-800 dark:text-white mb-2">Reiniciar Semana?</h3>
+      <p id="modal-desc" class="text-slate-500 dark:text-slate-400 text-sm mb-6 leading-relaxed">Todo o seu histórico será apagado.</p>
       <div class="flex gap-3">
-        <button id="confirm-cancel" class="flex-1 py-3 rounded-xl bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 font-bold text-sm hover:bg-slate-200 transition-colors">Cancelar</button>
-        <button id="confirm-ok" class="flex-1 py-3 rounded-xl bg-red-500 text-white font-bold text-sm shadow-lg shadow-red-500/30 hover:bg-red-600 transition-colors">Confirmar</button>
+        <button id="btn-modal-cancel" class="flex-1 py-3 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold text-sm hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">Cancelar</button>
+        <button id="btn-modal-confirm" class="flex-1 py-3 rounded-xl bg-red-500 text-white font-bold text-sm shadow-lg shadow-red-500/30 hover:bg-red-600 transition-colors">Confirmar</button>
       </div>
     </div>
   </div>
 
   <script>
-    // --- Configuração Inicial ---
-    tailwind.config = { darkMode: 'class', theme: { extend: { colors: { 'slate-850': '#1e293b' }, fontFamily: { sans: ['Inter', 'sans-serif'] } } } }
+    /* =================================================================
+       CONSTANTS & CONFIG
+    ================================================================= */
+    const CONFIG = {
+      DB_STATE: "meutreino_v5_state",
+      DB_DATA: "meutreino_v5_data",
+      THEME_COLORS: {
+        dark: { bar: '#3b82f6', grid: '#334155', text: '#94a3b8' },
+        light: { bar: '#2563eb', grid: '#e2e8f0', text: '#64748b' }
+      }
+    };
 
-    // DADOS INICIAIS (Baseados na sua imagem original)
-    const INITIAL_WORKOUT = {
-      "Segunda": { 
-        "focus": "Peito, Tríceps e Ombro", 
+    const DEFAULT_WORKOUT_JSON = {
+      "Segunda": {
+        "focus": "Peito, Tríceps e Ombro (Lateral)",
         "exercises": [
-          { "id": "s1", "name": "Supino Inclinado", "sets": 4, "reps": "8-12" },
-          { "id": "s2", "name": "Supino Máquina", "sets": 4, "reps": "10-12" },
-          { "id": "s3", "name": "Voador", "sets": 4, "reps": "12-15" },
-          { "id": "s4", "name": "Crucifixo", "sets": 4, "reps": "12" },
-          { "id": "s5", "name": "Tríceps Francês", "sets": 2, "reps": "10-12" },
-          { "id": "s6", "name": "Barra V", "sets": 2, "reps": "12" },
-          { "id": "s7", "name": "Elevação Lateral Halter", "sets": 1, "reps": "15" }
+          { "id": "seg1", "name": "Supino Inclinado", "sets": 4, "reps": "12" },
+          { "id": "seg2", "name": "Supino Máquina", "sets": 4, "reps": "12" },
+          { "id": "seg3", "name": "Voador", "sets": 4, "reps": "12" },
+          { "id": "seg4", "name": "Crucifixo", "sets": 4, "reps": "12" },
+          { "id": "seg5", "name": "Francês", "sets": 4, "reps": "12" },
+          { "id": "seg6", "name": "Barra V (Tríceps)", "sets": 4, "reps": "12" },
+          { "id": "seg7", "name": "Elevação Lateral com Halteres", "sets": 4, "reps": "12" }
         ]
       },
-      "Terça": { 
-        "focus": "Costas e Bíceps", 
+      "Terça": {
+        "focus": "Costas e Bíceps",
         "exercises": [
-          { "id": "t1", "name": "Puxada Alta Neutra", "sets": 4, "reps": "10-12" },
-          { "id": "t2", "name": "Remada Baixa Triângulo", "sets": 4, "reps": "10-12" },
-          { "id": "t3", "name": "Remada Curvada", "sets": 4, "reps": "10" },
-          { "id": "t4", "name": "Serrote", "sets": 4, "reps": "10" },
-          { "id": "t5", "name": "Rosca Barra W", "sets": 2, "reps": "10-12" },
-          { "id": "t6", "name": "Rosca Banco 45º", "sets": 2, "reps": "12" }
+          { "id": "ter1", "name": "Puxada Alta Neutra", "sets": 4, "reps": "12" },
+          { "id": "ter2", "name": "Remada Baixa Triângulo", "sets": 4, "reps": "12" },
+          { "id": "ter3", "name": "Remada Curvada", "sets": 4, "reps": "12" },
+          { "id": "ter4", "name": "Serrote (Remada Unilateral)", "sets": 4, "reps": "12" },
+          { "id": "ter5", "name": "Rosca Barra W", "sets": 4, "reps": "12" },
+          { "id": "ter6", "name": "Rosca Banco 45°", "sets": 4, "reps": "12" }
         ]
       },
-      "Quarta": { 
-        "focus": "Perna Completa", 
+      "Quarta": {
+        "focus": "Perna Completa",
         "exercises": [
-          { "id": "q1", "name": "Agachamento", "sets": 4, "reps": "8-10" },
-          { "id": "q2", "name": "Leg Press", "sets": 4, "reps": "10-12" },
-          { "id": "q3", "name": "Cadeira Extensora", "sets": 4, "reps": "15" },
-          { "id": "q4", "name": "Mesa Flexora", "sets": 4, "reps": "12-15" },
-          { "id": "q5", "name": "Panturrilhas", "sets": 4, "reps": "15-20" }
+          { "id": "qua1", "name": "Agachamento", "sets": 4, "reps": "12" },
+          { "id": "qua2", "name": "Leg Press", "sets": 4, "reps": "12" },
+          { "id": "qua3", "name": "Cadeira Extensora", "sets": 4, "reps": "12" },
+          { "id": "qua4", "name": "Mesa Flexora", "sets": 4, "reps": "12" },
+          { "id": "qua5", "name": "Panturrilhas (Gêmeos)", "sets": 4, "reps": "15-20" }
         ]
       },
-      "Quinta": { 
-        "focus": "Ombro Completo", 
+      "Quinta": {
+        "focus": "Ombro Completo, Bíceps e Tríceps",
         "exercises": [
-          { "id": "qi1", "name": "Desenv. Máquina", "sets": 4, "reps": "8-10" },
-          { "id": "qi2", "name": "Elevação Lateral", "sets": 4, "reps": "12-15" },
-          { "id": "qi3", "name": "Elevação Frontal", "sets": 4, "reps": "12" },
-          { "id": "qi4", "name": "Voador Invertido", "sets": 4, "reps": "12-15" },
-          { "id": "qi5", "name": "Rosca Martelo", "sets": 2, "reps": "12" },
-          { "id": "qi6", "name": "Rosca Scott", "sets": 2, "reps": "12" },
-          { "id": "qi7", "name": "Tríceps Corda", "sets": 2, "reps": "12" },
-          { "id": "qi8", "name": "Tríceps Testa", "sets": 2, "reps": "12" }
+          { "id": "qui1", "name": "Desenvolvimento Máquina", "sets": 4, "reps": "12" },
+          { "id": "qui2", "name": "Elevação Lateral", "sets": 4, "reps": "12" },
+          { "id": "qui3", "name": "Elevação Frontal", "sets": 4, "reps": "12" },
+          { "id": "qui4", "name": "Voador Invertido", "sets": 4, "reps": "12" },
+          { "id": "qui5", "name": "Rosca Martelo", "sets": 4, "reps": "12" },
+          { "id": "qui6", "name": "Rosca Scot", "sets": 4, "reps": "12" },
+          { "id": "qui7", "name": "Tríceps Corda", "sets": 4, "reps": "12" },
+          { "id": "qui8", "name": "Tríceps Testa", "sets": 4, "reps": "12" }
         ]
       }
     };
 
-    const DB_STATE_KEY = "meutreino_v3_state";
-    const DB_DATA_KEY = "meutreino_v3_data";
-
-    // --- State Management ---
-    let workoutData = JSON.parse(localStorage.getItem(DB_DATA_KEY)) || INITIAL_WORKOUT;
-    let appState = JSON.parse(localStorage.getItem(DB_STATE_KEY)) || { theme: "light", userName: "", completed: {}, weights: {}, lastWeekReset: 0 };
+    /* =================================================================
+       DOM CACHE & UTILS
+    ================================================================= */
+    const DOM = {};
     
-    // Fallback se o JSON estiver vazio
-    if(Object.keys(workoutData).length === 0) workoutData = INITIAL_WORKOUT;
-
-    let currentDay = getAutoDay();
-    let daysKeys = Object.keys(workoutData);
-
-    // --- Core Functions ---
-    function getWeekNumber(d = new Date()) {
-      d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-      d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay()||7));
-      var yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
-      return Math.ceil((((d - yearStart) / 86400000) + 1)/7);
+    function cacheDOM() {
+      const ids = [
+        'header-title', 'show-user-name', 'btn-settings', 'settings-panel', 
+        'btn-close-settings', 'edit-user-name', 'btn-save-name-settings',
+        'btn-toggle-theme', 'theme-label', 'theme-icon', 'json-input', 
+        'btn-reset-default', 'btn-import-json', 'tabs-container', 'app-content',
+        'chart-semana', 'info-metricas', 'user-modal', 'input-user-name-modal',
+        'btn-start-modal', 'confirmation-modal', 'modal-title', 'modal-desc',
+        'btn-modal-cancel', 'btn-modal-confirm', 'toast-container'
+      ];
+      ids.forEach(id => DOM[id] = document.getElementById(id));
     }
 
-    function checkWeeklyReset() {
-      const currentWeek = getWeekNumber();
-      if(appState.lastWeekReset !== currentWeek) {
-        appState.completed = {};
-        appState.lastWeekReset = currentWeek;
-        saveState();
-      }
-    }
-
-    function saveState() { localStorage.setItem(DB_STATE_KEY, JSON.stringify(appState)); }
-    function saveWorkoutData() { localStorage.setItem(DB_DATA_KEY, JSON.stringify(workoutData)); }
-
-    function getAutoDay() {
-      const map = ["Segunda", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
-      const d = new Date().getDay();
-      return workoutData[map[d]] ? map[d] : Object.keys(workoutData)[0];
-    }
-
-    // --- UI Rendering ---
-    function renderAll() {
-      // Tema
-      const isDark = appState.theme === 'dark';
-      document.body.setAttribute("data-theme", appState.theme);
-      document.getElementById("theme-label").innerText = isDark ? "Modo Escuro" : "Modo Claro";
-      document.getElementById("theme-icon").innerText = isDark ? "🌙" : "☀️";
+    const Utils = {
+      getWeekNumber: (d = new Date()) => {
+        d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+        d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay()||7));
+        const yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
+        return Math.ceil((((d - yearStart) / 86400000) + 1)/7);
+      },
       
-      // Nome
-      document.getElementById("show-user-name").innerText = appState.userName || "Atleta";
-      document.getElementById("edit-user-name").value = appState.userName || "";
-
-      // Dados Dinâmicos
-      daysKeys = Object.keys(workoutData);
-      
-      // Valida dia atual
-      if(!workoutData[currentDay] && currentDay !== 'Resumo') currentDay = daysKeys[0];
-
-      renderTabs();
-      renderDay(currentDay);
-      renderChart();
-    }
-
-    function renderTabs() {
-      const container = document.getElementById('tabs-container');
-      container.innerHTML = '';
-      
-      const createBtn = (label, key) => {
-        const btn = document.createElement('button');
-        const isActive = currentDay === key;
-        btn.onclick = () => { currentDay = key; renderAll(); };
-        btn.innerText = label;
-        btn.className = `tab-btn whitespace-nowrap px-5 py-2.5 rounded-full text-sm font-bold transition-all transform ${
-          isActive 
-          ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/40 scale-105' 
-          : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
-        }`;
-        container.appendChild(btn);
-      };
-
-      daysKeys.forEach(day => createBtn(day, day));
-      createBtn("Resumo", "Resumo");
-    }
-
-    function renderDay(day) {
-      const container = document.getElementById('app-content');
-      container.innerHTML = '';
-
-      if (day === 'Resumo') {
-        document.getElementById('header-title').innerText = "Resumo Semanal";
-        renderResumo(container);
-        return;
+      validateWorkoutJSON: (json) => {
+        if (typeof json !== 'object' || json === null) return false;
+        const days = Object.keys(json);
+        if (days.length === 0) return false;
+        return days.every(day => {
+          const d = json[day];
+          if (!d.hasOwnProperty('focus') || !Array.isArray(d.exercises)) return false;
+          return d.exercises.every(ex => ex.id && ex.name && ex.sets && ex.reps);
+        });
       }
+    };
 
-      const data = workoutData[day];
-      document.getElementById('header-title').innerHTML = `${day} <span class="block text-xs font-normal text-slate-400 dark:text-slate-500 mt-0.5 truncate max-w-[200px]">${data.focus || 'Treino do dia'}</span>`;
+    /* =================================================================
+       STATE MANAGEMENT
+    ================================================================= */
+    const State = {
+      app: { theme: "light", userName: "", completed: {}, weights: {}, lastWeekReset: 0 },
+      workout: {},
+      currentDay: "",
+      daysKeys: [],
+      chartInstance: null,
+      pendingModalAction: null,
 
-      if (!data.exercises || data.exercises.length === 0) {
-        container.innerHTML = `<div class="flex flex-col items-center justify-center h-64 text-slate-400"><span class="text-4xl mb-2">💤</span><p>Descanso</p></div>`;
-        return;
-      }
-
-      data.exercises.forEach(ex => {
-        const isDone = appState.completed[ex.id];
-        const weight = appState.weights[ex.id] || '';
+      init() {
+        this.app = JSON.parse(localStorage.getItem(CONFIG.DB_STATE)) || this.app;
+        this.workout = JSON.parse(localStorage.getItem(CONFIG.DB_DATA)) || DEFAULT_WORKOUT_JSON;
         
-        const card = document.createElement('div');
-        // Mantendo o estilo visual original exato
-        card.className = `card relative overflow-hidden bg-white dark:bg-slate-800 rounded-2xl p-5 mb-4 border-l-[6px] shadow-sm hover:shadow-md ${
-          isDone ? 'border-l-emerald-500' : 'border-l-blue-500'
-        } border-y border-r border-slate-100 dark:border-slate-700/50`;
+        if (Object.keys(this.workout).length === 0) this.workout = DEFAULT_WORKOUT_JSON;
+        
+        this.checkWeeklyReset();
+        this.updateDaysKeys();
+        this.determineCurrentDay();
+      },
 
-        card.innerHTML = `
-          <div class="flex justify-between items-start gap-4">
-            <div class="flex-1">
-              <h3 class="text-[17px] font-bold text-slate-800 dark:text-slate-100 leading-tight mb-2">${ex.name}</h3>
-              <div class="flex flex-wrap gap-2 mb-3">
-                <span class="bg-slate-100 dark:bg-slate-700/60 text-slate-600 dark:text-slate-300 px-2.5 py-1 rounded-lg text-xs font-bold uppercase tracking-wider">${ex.sets} séries</span>
-                <span class="bg-slate-100 dark:bg-slate-700/60 text-slate-600 dark:text-slate-300 px-2.5 py-1 rounded-lg text-xs font-bold uppercase tracking-wider">${ex.reps} reps</span>
-              </div>
-              
-              <div class="flex items-center gap-3">
-                <div class="bg-slate-50 dark:bg-slate-900 rounded-xl px-3 py-1.5 flex items-center border border-slate-200 dark:border-slate-700 transition-colors focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20">
-                  <input type="number" inputmode="numeric" 
-                    class="w-10 text-center bg-transparent font-bold text-slate-700 dark:text-white outline-none text-lg" 
-                    placeholder="-" value="${weight}" 
-                    onchange="updateWeight('${ex.id}', this.value)"
-                    onclick="this.select()">
-                  <span class="text-xs text-slate-400 font-bold ml-1 uppercase">kg</span>
+      checkWeeklyReset() {
+        const currentWeek = Utils.getWeekNumber();
+        if (this.app.lastWeekReset !== currentWeek) {
+          this.app.completed = {};
+          this.app.lastWeekReset = currentWeek;
+          this.saveApp();
+        }
+      },
+
+      updateDaysKeys() {
+        this.daysKeys = Object.keys(this.workout);
+      },
+
+      determineCurrentDay() {
+        const map = ["Segunda", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
+        const d = new Date().getDay();
+        const autoDay = map[d];
+        this.currentDay = this.workout[autoDay] ? autoDay : this.daysKeys[0];
+      },
+
+      saveApp() { localStorage.setItem(CONFIG.DB_STATE, JSON.stringify(this.app)); },
+      saveWorkout() { localStorage.setItem(CONFIG.DB_DATA, JSON.stringify(this.workout)); },
+
+      toggleCheck(id) {
+        if (this.app.completed[id]) delete this.app.completed[id];
+        else this.app.completed[id] = true;
+        this.saveApp();
+      },
+
+      updateWeight(id, val) {
+        this.app.weights[id] = val;
+        this.saveApp();
+      }
+    };
+
+    /* =================================================================
+       UI MANAGER
+    ================================================================= */
+    const UI = {
+      showToast(message, type = 'success') {
+        const el = document.createElement('div');
+        const bg = type === 'success' ? 'bg-emerald-500' : (type === 'error' ? 'bg-red-500' : 'bg-blue-500');
+        el.className = `toast pointer-events-auto px-4 py-3 rounded-xl shadow-lg shadow-slate-400/20 text-white text-sm font-bold flex items-center gap-2 ${bg}`;
+        el.innerHTML = `<span>${type === 'success' ? '✅' : (type === 'error' ? '⚠️' : 'ℹ️')}</span> ${message}`;
+        DOM['toast-container'].appendChild(el);
+        requestAnimationFrame(() => el.classList.add('show'));
+        setTimeout(() => {
+          el.classList.remove('show');
+          setTimeout(() => el.remove(), 300);
+        }, 3000);
+      },
+
+      showModal(title, desc, onConfirm) {
+        DOM['modal-title'].innerText = title;
+        DOM['modal-desc'].innerText = desc;
+        State.pendingModalAction = onConfirm;
+        DOM['confirmation-modal'].classList.add('show');
+      },
+
+      closeModal() {
+        DOM['confirmation-modal'].classList.remove('show');
+        State.pendingModalAction = null;
+      },
+
+      toggleSettings(forceClose = false) {
+        const p = DOM['settings-panel'];
+        const isHidden = p.classList.contains('hidden');
+        
+        if (forceClose || !isHidden) {
+          p.classList.add('opacity-0', 'scale-95');
+          setTimeout(() => p.classList.add('hidden'), 200);
+        } else {
+          p.classList.remove('hidden');
+          requestAnimationFrame(() => p.classList.remove('opacity-0', 'scale-95'));
+        }
+      },
+
+      renderAll() {
+        this.applyTheme();
+        this.renderUser();
+        this.renderTabs();
+        this.renderContent();
+        this.renderChart();
+      },
+
+      // CORREÇÃO PRINCIPAL: Toggle da classe 'dark' no HTML
+      applyTheme() {
+        const isDark = State.app.theme === 'dark';
+        
+        // Aplica a classe ao elemento HTML para o Tailwind funcionar
+        document.documentElement.classList.toggle('dark', isDark);
+        
+        DOM['theme-label'].innerText = isDark ? "Modo Escuro" : "Modo Claro";
+        DOM['theme-icon'].innerText = isDark ? "🌙" : "☀️";
+        
+        // Atualiza a meta tag de cor do navegador (opcional, para mobile ficar top)
+        // Se houver meta theme-color, atualizamos. Se não, não fazemos nada.
+      },
+
+      renderUser() {
+        const name = State.app.userName || "Atleta";
+        DOM['show-user-name'].innerText = name;
+        DOM['edit-user-name'].value = State.app.userName || "";
+      },
+
+      renderTabs() {
+        const container = DOM['tabs-container'];
+        container.innerHTML = '';
+        
+        const createBtn = (label, key) => {
+          const btn = document.createElement('button');
+          const isActive = State.currentDay === key;
+          btn.className = `tab-btn whitespace-nowrap px-5 py-2.5 rounded-full text-sm font-bold transition-all transform ${
+            isActive 
+            ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/40 scale-105' 
+            : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
+          }`;
+          btn.innerText = label;
+          btn.addEventListener('click', () => {
+            State.currentDay = key;
+            this.renderAll();
+          });
+          container.appendChild(btn);
+        };
+
+        State.daysKeys.forEach(day => createBtn(day, day));
+        createBtn("Resumo", "Resumo");
+      },
+
+      renderContent() {
+        const container = DOM['app-content'];
+        container.innerHTML = '';
+
+        if (State.currentDay === 'Resumo') {
+          DOM['header-title'].innerText = "Resumo Semanal";
+          this.renderResumoStats(container);
+          return;
+        }
+
+        const data = State.workout[State.currentDay];
+        DOM['header-title'].innerHTML = `${State.currentDay} <span class="block text-xs font-normal text-slate-400 dark:text-slate-500 mt-0.5 truncate max-w-[200px]">${data.focus || 'Treino do dia'}</span>`;
+
+        if (!data.exercises || data.exercises.length === 0) {
+          container.innerHTML = `<div class="flex flex-col items-center justify-center h-64 text-slate-400"><span class="text-4xl mb-2">💤</span><p>Descanso</p></div>`;
+          return;
+        }
+
+        data.exercises.forEach(ex => {
+          const isDone = State.app.completed[ex.id];
+          const weight = State.app.weights[ex.id] || '';
+          
+          const card = document.createElement('div');
+          // Cards: Branco no Light | Slate-800 no Dark. 
+          // O fundo do body no Dark é Slate-950, então 800 destaca.
+          card.className = `card relative overflow-hidden bg-white dark:bg-slate-800 rounded-2xl p-5 mb-4 border-l-[6px] shadow-sm hover:shadow-md transition-theme ${
+            isDone ? 'border-l-emerald-500' : 'border-l-blue-500'
+          } border-y border-r border-slate-100 dark:border-slate-800`;
+          
+          card.innerHTML = `
+            <div class="flex justify-between items-start gap-4">
+              <div class="flex-1">
+                <h3 class="text-[17px] font-bold text-slate-800 dark:text-slate-100 leading-tight mb-2 transition-theme">${ex.name}</h3>
+                <div class="flex flex-wrap gap-2 mb-3">
+                  <span class="bg-slate-100 dark:bg-slate-700/60 text-slate-600 dark:text-slate-300 px-2.5 py-1 rounded-lg text-xs font-bold uppercase tracking-wider transition-theme">${ex.sets} séries</span>
+                  <span class="bg-slate-100 dark:bg-slate-700/60 text-slate-600 dark:text-slate-300 px-2.5 py-1 rounded-lg text-xs font-bold uppercase tracking-wider transition-theme">${ex.reps} reps</span>
+                </div>
+                
+                <div class="flex items-center gap-3">
+                  <div class="bg-slate-50 dark:bg-slate-900 rounded-xl px-3 py-1.5 flex items-center border border-slate-200 dark:border-slate-700 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20 transition-theme">
+                    <input type="number" inputmode="numeric" 
+                      class="weight-input w-10 text-center bg-transparent font-bold text-slate-700 dark:text-white outline-none text-lg" 
+                      placeholder="-" value="${weight}" 
+                      data-id="${ex.id}">
+                    <span class="text-xs text-slate-400 font-bold ml-1 uppercase">kg</span>
+                  </div>
                 </div>
               </div>
+              
+              <button class="check-btn h-14 w-14 rounded-2xl flex items-center justify-center text-2xl transition-all shadow-sm active:scale-95 ${
+                isDone 
+                ? 'checked bg-emerald-500 text-white shadow-emerald-500/40' 
+                : 'bg-slate-50 dark:bg-slate-700/50 text-slate-300 dark:text-slate-600 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600'
+              }" aria-label="Marcar como feito" data-id="${ex.id}">
+                ${isDone ? '✓' : ''}
+              </button>
             </div>
-            
-            <button onclick="toggleCheck('${ex.id}')" 
-              class="check-btn h-14 w-14 rounded-2xl flex items-center justify-center text-2xl transition-all shadow-sm active:scale-95 ${
-              isDone 
-              ? 'checked bg-emerald-500 text-white shadow-emerald-500/40' 
-              : 'bg-slate-50 dark:bg-slate-700/50 text-slate-300 dark:text-slate-600 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
-            }">
-              ${isDone ? '✓' : ''}
-            </button>
-          </div>
-        `;
-        container.appendChild(card);
-      });
-    }
+          `;
+          container.appendChild(card);
+        });
+      },
 
-    function renderResumo(container) {
-      let total = 0, done = 0;
-      daysKeys.forEach(d => {
-        if(workoutData[d].exercises) {
-          workoutData[d].exercises.forEach(ex => {
-            total++;
-            if(appState.completed[ex.id]) done++;
-          });
-        }
-      });
-      
-      const pct = total === 0 ? 0 : Math.round((done/total)*100);
-
-      container.innerHTML = `
-        <div class="bg-white dark:bg-slate-800 rounded-[2rem] p-8 mb-6 shadow-xl border border-slate-100 dark:border-slate-700 text-center relative overflow-hidden group">
-          <div class="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500"></div>
-          
-          <div class="relative z-10">
-            <div class="text-7xl font-black text-slate-800 dark:text-white mb-2 tracking-tighter bg-clip-text text-transparent bg-gradient-to-br from-slate-800 to-slate-500 dark:from-white dark:to-slate-400">
-              ${pct}%
-            </div>
-            <p class="text-slate-400 dark:text-slate-500 text-xs font-bold uppercase tracking-[0.2em] mb-8">Conclusão Semanal</p>
-            
-            <div class="inline-flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-900 rounded-full text-sm font-semibold text-slate-600 dark:text-slate-300">
-              <span>🔥</span> ${done} / ${total} Exercícios
-            </div>
-          </div>
-        </div>
-        
-        <button onclick="document.getElementById('confirmation-modal').style.display='flex'" class="w-full bg-red-50 hover:bg-red-100 dark:bg-red-900/10 dark:hover:bg-red-900/20 text-red-500 dark:text-red-400 font-bold py-4 rounded-2xl transition-all text-sm flex items-center justify-center gap-3 border border-red-100 dark:border-red-900/30">
-          <span>🗑️</span> Reiniciar Semana
-        </button>
-      `;
-    }
-
-    // --- Actions ---
-    function toggleCheck(id) {
-      if(appState.completed[id]) delete appState.completed[id];
-      else appState.completed[id] = true;
-      saveState();
-      setTimeout(() => { renderAll(); }, 50); // Small delay for animation
-    }
-
-    function updateWeight(id, val) {
-      appState.weights[id] = val;
-      saveState();
-    }
-
-    function toggleTheme() {
-      appState.theme = appState.theme === 'light' ? 'dark' : 'light';
-      saveState();
-      renderAll();
-    }
-
-    function toggleSettings() {
-      const p = document.getElementById('settings-panel');
-      if (p.classList.contains('hidden')) {
-        p.classList.remove('hidden');
-        setTimeout(() => p.classList.remove('opacity-0', 'scale-95'), 10);
-      } else {
-        p.classList.add('opacity-0', 'scale-95');
-        setTimeout(() => p.classList.add('hidden'), 200);
-      }
-    }
-
-    function saveUserNameSettings() {
-      const name = document.getElementById('edit-user-name').value.trim();
-      if(name) { appState.userName = name; saveState(); toggleSettings(); renderAll(); }
-    }
-    
-    function saveUserNameModal() {
-      const name = document.getElementById('input-user-name').value.trim();
-      if(name) { appState.userName = name; saveState(); document.getElementById('user-modal').classList.add('hidden'); renderAll(); }
-    }
-
-    // --- JSON Logic ---
-    function importWorkoutJson() {
-      const input = document.getElementById('json-input').value;
-      try {
-        const parsed = JSON.parse(input);
-        if(typeof parsed !== 'object' || Object.keys(parsed).length === 0) throw new Error();
-        
-        workoutData = parsed;
-        saveWorkoutData();
-        daysKeys = Object.keys(workoutData);
-        currentDay = daysKeys[0];
-        
-        alert("Treino atualizado com sucesso!");
-        toggleSettings();
-        renderAll();
-      } catch(e) {
-        alert("Erro no JSON. Cole um código válido gerado pela IA.");
-      }
-    }
-
-    function resetToDefault() {
-      if(confirm("Voltar ao treino original?")) {
-        workoutData = INITIAL_WORKOUT;
-        saveWorkoutData();
-        renderAll();
-        toggleSettings();
-      }
-    }
-
-    function resetWeek() {
-      appState.completed = {};
-      saveState();
-      document.getElementById('confirmation-modal').style.display='none';
-      renderAll();
-    }
-
-    document.getElementById('confirm-ok').onclick = resetWeek;
-    document.getElementById('confirm-cancel').onclick = () => document.getElementById('confirmation-modal').style.display='none';
-
-    // --- Chart ---
-    let chartInstance = null;
-    function renderChart() {
-      const ctx = document.getElementById('chart-semana')?.getContext('2d');
-      if(!ctx) return;
-
-      const labels = Object.keys(workoutData);
-      const dataPoints = labels.map(d => workoutData[d].exercises ? workoutData[d].exercises.filter(e => appState.completed[e.id]).length : 0);
-      const shortLabels = labels.map(l => l.substring(0,3));
-
-      const isDark = appState.theme === 'dark';
-      
-      if(chartInstance) chartInstance.destroy();
-
-      chartInstance = new Chart(ctx, {
-        type: 'bar',
-        data: {
-          labels: shortLabels,
-          datasets: [{
-            data: dataPoints,
-            backgroundColor: isDark ? '#3b82f6' : '#2563eb',
-            borderRadius: 8,
-            barThickness: 20,
-            maxBarThickness: 32
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: { legend: { display: false }, tooltip: { enabled: false } },
-          scales: {
-            y: { beginAtZero: true, grid: { color: isDark ? '#334155' : '#e2e8f0', drawBorder: false }, ticks: { color: isDark ? '#94a3b8' : '#64748b', font: {family: 'Inter', size: 10}, stepSize: 1 } },
-            x: { grid: { display: false }, ticks: { color: isDark ? '#94a3b8' : '#64748b', font: {family: 'Inter', size: 11, weight: '600'} } }
+      renderResumoStats(container) {
+        let total = 0, done = 0;
+        State.daysKeys.forEach(d => {
+          if(State.workout[d].exercises) {
+            State.workout[d].exercises.forEach(ex => {
+              total++;
+              if(State.app.completed[ex.id]) done++;
+            });
           }
-        }
+        });
+        
+        const pct = total === 0 ? 0 : Math.round((done/total)*100);
+
+        const div = document.createElement('div');
+        div.innerHTML = `
+          <div class="bg-white dark:bg-slate-800 rounded-[2rem] p-8 mb-6 shadow-xl border border-slate-100 dark:border-slate-800 text-center relative overflow-hidden group transition-theme">
+            <div class="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500"></div>
+            <div class="relative z-10">
+              <div class="text-7xl font-black text-slate-800 dark:text-white mb-2 tracking-tighter bg-clip-text text-transparent bg-gradient-to-br from-slate-800 to-slate-500 dark:from-white dark:to-slate-400 transition-theme">${pct}%</div>
+              <p class="text-slate-400 dark:text-slate-500 text-xs font-bold uppercase tracking-[0.2em] mb-8">Conclusão Semanal</p>
+              <div class="inline-flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-900 rounded-full text-sm font-semibold text-slate-600 dark:text-slate-300 transition-theme">
+                <span>🔥</span> ${done} / ${total} Exercícios
+              </div>
+            </div>
+          </div>
+          <button id="btn-reset-week" class="w-full bg-red-50 hover:bg-red-100 dark:bg-red-900/10 dark:hover:bg-red-900/20 text-red-500 dark:text-red-400 font-bold py-4 rounded-2xl transition-all text-sm flex items-center justify-center gap-3 border border-red-100 dark:border-red-900/30">
+            <span>🗑️</span> Reiniciar Semana
+          </button>
+        `;
+        
+        container.appendChild(div);
+        
+        document.getElementById('btn-reset-week').addEventListener('click', () => {
+          this.showModal("Reiniciar Semana?", "Todo o histórico de check-ins será apagado.", () => {
+            State.app.completed = {};
+            State.saveApp();
+            this.renderAll();
+            this.showToast("Semana reiniciada!");
+          });
+        });
+      },
+
+      renderChart() {
+        const ctx = DOM['chart-semana']?.getContext('2d');
+        if(!ctx) return;
+
+        const labels = State.daysKeys;
+        const dataPoints = labels.map(d => State.workout[d].exercises ? State.workout[d].exercises.filter(e => State.app.completed[e.id]).length : 0);
+        const shortLabels = labels.map(l => l.substring(0,3));
+
+        const isDark = State.app.theme === 'dark';
+        const colors = isDark ? CONFIG.THEME_COLORS.dark : CONFIG.THEME_COLORS.light;
+        
+        if(State.chartInstance) State.chartInstance.destroy();
+
+        State.chartInstance = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: shortLabels,
+            datasets: [{
+              data: dataPoints,
+              backgroundColor: colors.bar,
+              borderRadius: 8,
+              barThickness: 20,
+              maxBarThickness: 32
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false }, tooltip: { enabled: false } },
+            scales: {
+              y: { beginAtZero: true, grid: { color: colors.grid, drawBorder: false }, ticks: { color: colors.text, font: {family: 'Inter', size: 10}, stepSize: 1 } },
+              x: { grid: { display: false }, ticks: { color: colors.text, font: {family: 'Inter', size: 11, weight: '600'} } }
+            }
+          }
+        });
+        
+        const doneTotal = dataPoints.reduce((a,b)=>a+b,0);
+        DOM['info-metricas'].innerHTML = doneTotal > 0 
+          ? `🔥 <b>${doneTotal}</b> exercícios concluídos esta semana`
+          : "Seus dados aparecerão aqui";
+      }
+    };
+
+    /* =================================================================
+       EVENT LISTENERS
+    ================================================================= */
+    function initEvents() {
+      DOM['btn-settings'].addEventListener('click', () => UI.toggleSettings());
+      DOM['btn-close-settings'].addEventListener('click', () => UI.toggleSettings(true));
+      
+      DOM['btn-save-name-settings'].addEventListener('click', () => {
+        const name = DOM['edit-user-name'].value.trim();
+        if(name) { State.app.userName = name; State.saveApp(); UI.toggleSettings(); UI.renderAll(); UI.showToast("Nome salvo!"); }
       });
       
-      const doneTotal = dataPoints.reduce((a,b)=>a+b,0);
-      document.getElementById('info-metricas').innerHTML = doneTotal > 0 
-        ? `🔥 <b>${doneTotal}</b> exercícios concluídos esta semana`
-        : "Seus dados aparecerão aqui";
+      DOM['btn-toggle-theme'].addEventListener('click', () => {
+        State.app.theme = State.app.theme === 'light' ? 'dark' : 'light';
+        State.saveApp();
+        UI.renderAll(); // Isso agora chama applyTheme, que chama toggle('dark')
+      });
+
+      DOM['btn-import-json'].addEventListener('click', () => {
+        const input = DOM['json-input'].value;
+        try {
+          const parsed = JSON.parse(input);
+          if(!Utils.validateWorkoutJSON(parsed)) throw new Error("Estrutura inválida");
+          State.workout = parsed;
+          State.saveWorkout();
+          State.init();
+          UI.toggleSettings();
+          UI.renderAll();
+          UI.showToast("Treino importado com sucesso!");
+        } catch(e) {
+          UI.showToast("Erro: JSON inválido.", "error");
+        }
+      });
+
+      DOM['btn-reset-default'].addEventListener('click', () => {
+        UI.showModal("Restaurar Padrão?", "Isso irá carregar o treino padrão.", () => {
+          State.workout = DEFAULT_WORKOUT_JSON;
+          State.saveWorkout();
+          State.init();
+          UI.toggleSettings();
+          UI.renderAll();
+          UI.showToast("Padrão restaurado!");
+        });
+      });
+
+      DOM['btn-start-modal'].addEventListener('click', () => {
+        const name = DOM['input-user-name-modal'].value.trim();
+        if(name) {
+          State.app.userName = name;
+          State.saveApp();
+          DOM['user-modal'].classList.remove('show');
+          UI.renderAll();
+        }
+      });
+
+      DOM['btn-modal-cancel'].addEventListener('click', UI.closeModal);
+      DOM['btn-modal-confirm'].addEventListener('click', () => {
+        if(State.pendingModalAction) State.pendingModalAction();
+        UI.closeModal();
+      });
+
+      DOM['app-content'].addEventListener('click', (e) => {
+        const btn = e.target.closest('.check-btn');
+        if (btn) {
+          const id = btn.dataset.id;
+          State.toggleCheck(id);
+          setTimeout(() => UI.renderAll(), 50);
+        }
+      });
+
+      DOM['app-content'].addEventListener('change', (e) => {
+        if (e.target.classList.contains('weight-input')) {
+          State.updateWeight(e.target.dataset.id, e.target.value);
+        }
+      });
     }
 
-    // --- Init ---
+    /* =================================================================
+       INIT
+    ================================================================= */
     window.onload = function() {
-      checkWeeklyReset();
-      if(!appState.userName) document.getElementById('user-modal').classList.remove('hidden');
-      else document.getElementById('user-modal').classList.add('hidden');
-      renderAll();
+      cacheDOM();
+      State.init();
+      initEvents();
+      if(!State.app.userName) DOM['user-modal'].classList.add('show');
+      UI.renderAll(); // Aplica tema no carregamento
     };
+
   </script>
 </body>
 </html>
-
-
