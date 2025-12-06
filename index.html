@@ -321,7 +321,7 @@
        2. SERVIÇOS NUCLEARES (CORE SERVICES)
     ================================================================= */
     
-   /* 2.1 Serviço de Inteligência Artificial (Apenas Gemini) */
+    /* 2.1 Serviço de Inteligência Artificial (Apenas Gemini) */
     const AIService = {
       getProvider() {
         return 'gemini';
@@ -332,10 +332,24 @@
       },
 
       async call(prompt, systemContext = "") {
-        // ... (Mantenha a função call como está) ...
+        const apiKey = this.getKey();
+
+        if (!apiKey) throw new Error(`Chave da API (Gemini) não configurada em api_config.js.`);
+
+        // --- GEMINI IMPLEMENTATION ---
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: systemContext + "\n\n" + prompt }] }]
+          })
+        });
+        const data = await response.json();
+        if (data.error) throw new Error(data.error.message);
+        return data.candidates[0].content.parts[0].text;
       },
 
-      // 🔽 COLE O CÓDIGO NOVO AQUI, SUBSTITUINDO A FUNÇÃO ANTIGA 🔽
       async generateWorkout(userGoal) {
         // Prompt reforçado para garantir a estrutura exata
         const systemPrompt = `
@@ -360,8 +374,7 @@
         `;
         
         try {
-          // Chama a função call passando o systemPrompt como instrução
-          const result = await this.call(systemPrompt); 
+          const result = await this.call(systemPrompt); // Envia o prompt combinado
           
           // 1. Remove formatação Markdown comum
           let cleanJson = result.replace(/```json/g, '').replace(/```/g, '');
@@ -383,13 +396,13 @@
           throw new Error("Formato de treino incompatível. Tente novamente.");
         }
       },
-      // 🔼 FIM DO CÓDIGO NOVO 🔼
 
       async getExerciseTip(exerciseName) {
-         // ... (Mantenha a função getExerciseTip como está) ...
+        const prompt = `Explica resumidamente como executar o exercício: "${exerciseName}". Dê 3 dicas curtas de postura em Português (bullet points). Máximo 50 palavras.`;
+        return await this.call(prompt, "You are a helpful gym coach.");
       }
     };
-    
+
     /* 2.2 Utilitários e Helpers */
     const Utils = {
       getWeekNumber: (d = new Date()) => {
@@ -891,3 +904,5 @@
   </script>
 </body>
 </html>
+
+
